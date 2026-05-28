@@ -63,6 +63,24 @@ function createInitialInventory() {
   return { skillResetTicket: 0, martialBook: 0, magicBook: 0, rewardRerollTicket: 0 };
 }
 
+function createEnemyForFloor(floor) {
+  return {
+    name: `${floor}층의 그림자 적`,
+    hp: 18 + floor * 2,
+    maxHp: 18 + floor * 2,
+    position: { x: 3, y: 1 },
+    stats: {
+      힘: 7 + floor,
+      민첩: 7 + floor,
+      체력: 7 + floor,
+      지능: 4 + Math.floor(floor / 2),
+      지혜: 4 + Math.floor(floor / 2),
+      외모: 4,
+    },
+    state: ['대기'],
+  };
+}
+
 function createInitialGameState() {
   const player = createInitialPlayer();
   const initialState = {
@@ -70,19 +88,13 @@ function createInitialGameState() {
     floor: 1,
     turn: 1,
     player,
-    enemy: {
-      name: '그림자 도적',
-      hp: 20,
-      maxHp: 20,
-      position: { x: 3, y: 1 },
-      stats: { 힘: 8, 민첩: 8, 체력: 8, 지능: 4, 지혜: 4, 외모: 4 },
-      state: ['대기'],
-    },
+    enemy: createEnemyForFloor(1),
     map: createInitialMap(),
     reward: { options: [], selected: null, rerolled: false },
     skill: { options: [], selected: null, skipped: false },
     magicBookPhase: { baseAttemptUsed: false, extraAttempts: 0, lastResult: null },
     shop: { log: [] },
+    nextFloorConfirm: { ready: false },
   };
 
   return recalculateDerivedStatsForState(initialState, { refillHpMp: true });
@@ -120,6 +132,9 @@ const shopCoinElement = document.getElementById('shop-coin');
 const shopBuyOptionsElement = document.getElementById('shop-buy-options');
 const shopSellOptionsElement = document.getElementById('shop-sell-options');
 const finishShopButton = document.getElementById('finish-shop-button');
+const nextFloorPanel = document.getElementById('next-floor-panel');
+const nextFloorDescElement = document.getElementById('next-floor-desc');
+const enterNextFloorButton = document.getElementById('enter-next-floor-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -210,6 +225,8 @@ function ensureStateShape() {
   if (!('lastResult' in gameState.magicBookPhase)) gameState.magicBookPhase.lastResult = null;
   if (!gameState.shop) gameState.shop = { log: [] };
   if (!Array.isArray(gameState.shop.log)) gameState.shop.log = [];
+  if (!gameState.nextFloorConfirm) gameState.nextFloorConfirm = { ready: false };
+  if (typeof gameState.nextFloorConfirm.ready !== 'boolean') gameState.nextFloorConfirm.ready = false;
 }
 
 function renderStatus() {
@@ -372,6 +389,16 @@ function renderShopPanel() {
   });
 }
 
+function renderNextFloorPanel() {
+  if (gameState.phase !== 'NEXT_FLOOR_CONFIRM') {
+    nextFloorPanel.hidden = true;
+    return;
+  }
+
+  nextFloorPanel.hidden = false;
+  nextFloorDescElement.textContent = `현재 ${gameState.floor}층을 클리어했습니다. 다음은 ${gameState.floor + 1}층입니다. 다음 층에도 적은 1명만 등장합니다.`;
+}
+
 function renderSkillPanel() {
   if (gameState.phase !== 'IMAGINATION_SKILL') {
     skillPanel.hidden = true;
@@ -422,6 +449,7 @@ function enterSkillPhase() {
     renderStatus();
     renderMagicBookPanel();
     renderShopPanel();
+    renderNextFloorPanel();
     renderMap();
     return;
   }
@@ -431,6 +459,7 @@ function enterSkillPhase() {
   gameState.skill.skipped = false;
   addLog('스킬 후보 3개 중 하나를 선택하세요.');
   renderSkillPanel();
+  renderNextFloorPanel();
 }
 
 function selectSkill(index) {
@@ -458,6 +487,7 @@ function selectSkill(index) {
   renderStatus();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -469,6 +499,7 @@ function finishMagicBookPhase() {
   renderStatus();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -504,6 +535,7 @@ function clearFloor() {
   renderSkillPanel();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -518,21 +550,19 @@ function rerollRewards() {
     addLog('이미 리롤했습니다.');
     return;
   }
-  if (gameState.player.coin < 1 && gameState.player.inventory.rewardRerollTicket < 1) {
-    addLog('코인이 부족해 리롤할 수 없습니다.');
+  if (gameState.player.inventory.rewardRerollTicket > 0) {
+    gameState.player.inventory.rewardRerollTicket -= 1;
+    addLog('보상 리롤권을 사용했습니다.');
+  } else if (gameState.player.coin >= 1) {
+    gameState.player.coin -= 1;
+    addLog('코인 1개를 사용해 보상 후보를 다시 생성했습니다.');
+  } else {
+    addLog('리롤권 또는 코인이 부족해 리롤할 수 없습니다.');
     return;
   }
 
-  if (gameState.player.coin < 1 && gameState.player.inventory.rewardRerollTicket > 0) {
-    gameState.player.inventory.rewardRerollTicket -= 1;
-    addLog('보상 리롤권을 사용했습니다.');
-  } else {
-    gameState.player.coin -= 1;
-    addLog('코인 1개를 사용했습니다.');
-  }
   gameState.reward.options = [weightedPick(REWARD_TABLE), weightedPick(REWARD_TABLE)];
   gameState.reward.rerolled = true;
-  addLog('보상 후보를 다시 생성했습니다.');
   renderStatus();
   renderRewardOptions();
 }
@@ -797,6 +827,7 @@ function selectReward(index) {
   renderSkillPanel();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -941,10 +972,42 @@ function finishShopPhase() {
   ensureStateShape();
   if (gameState.phase !== 'IMAGINATION_SHOP') return;
   gameState.phase = 'NEXT_FLOOR_CONFIRM';
+  gameState.nextFloorConfirm.ready = true;
   addShopLog('상점 이용을 마쳤습니다.');
   addShopLog('다음 단계: 다음 층 진입 여부 선택');
   renderStatus();
   renderShopPanel();
+  renderNextFloorPanel();
+  renderMap();
+}
+
+function enterNextFloor() {
+  ensureStateShape();
+  if (gameState.phase !== 'NEXT_FLOOR_CONFIRM') return;
+
+  gameState.floor += 1;
+  gameState.turn = 1;
+  gameState.enemy = createEnemyForFloor(gameState.floor);
+  gameState.map = createInitialMap();
+  gameState.player.position = { x: 3, y: 5 };
+  gameState.player.hp = gameState.player.maxHp;
+  gameState.player.mp = gameState.player.maxMp;
+  gameState.player.state = [];
+  gameState.reward = { options: [], selected: null, rerolled: false };
+  gameState.skill = { options: [], selected: null, skipped: false };
+  gameState.magicBookPhase = { baseAttemptUsed: false, extraAttempts: 0, lastResult: null };
+  gameState.nextFloorConfirm.ready = false;
+  gameState.phase = 'BATTLE';
+
+  addLog(`${gameState.floor}층에 진입했습니다.`);
+  addLog('새로운 적 1명이 나타났습니다.');
+  renderStatus();
+  renderRewardOptions();
+  renderStatPanel();
+  renderSkillPanel();
+  renderMagicBookPanel();
+  renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -980,6 +1043,7 @@ function finishStatDistribution() {
     renderSkillPanel();
     renderMagicBookPanel();
     renderShopPanel();
+    renderNextFloorPanel();
     renderMap();
     return;
   }
@@ -996,6 +1060,7 @@ function finishStatDistribution() {
   renderSkillPanel();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
   renderMap();
 }
 
@@ -1054,6 +1119,7 @@ function loadGame() {
     renderSkillPanel();
     renderMagicBookPanel();
     renderShopPanel();
+    renderNextFloorPanel();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
@@ -1074,6 +1140,7 @@ function resetGame() {
   renderSkillPanel();
   renderMagicBookPanel();
   renderShopPanel();
+  renderNextFloorPanel();
 }
 
 
@@ -1091,6 +1158,7 @@ function bindActions() {
   extraMagicBookButton.addEventListener('click', () => tryMagicBookAttempt(true));
   finishMagicBookButton.addEventListener('click', finishMagicBookPhase);
   finishShopButton.addEventListener('click', finishShopPhase);
+  enterNextFloorButton.addEventListener('click', enterNextFloor);
 }
 
 function init() {
