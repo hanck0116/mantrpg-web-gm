@@ -121,7 +121,7 @@ body {
 
 .stat-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
