@@ -15,6 +15,7 @@ const SKILL_TEMPLATES = [
   { type: 'FOCUSED_GUARD', label: '집중 방어', description: '다음 적 공격 피해를 크게 줄인다.', mpCost: 1, damage: 0, stat: '체력' },
   { type: 'TACTICAL_OBSERVE', label: '전술 관찰', description: '적의 다음 행동 예고와 위험 타일 정보를 강화한다.', mpCost: 1, damage: 0, stat: '지혜' },
 ];
+const MAGIC_POOL_1 = ['라이트', '파이어', '아이스', '윈드', '매직 애로우', '그리스', '디그', '다크니스'];
 
 function createBaseTile(x, y) {
   return {
@@ -67,6 +68,7 @@ function createInitialGameState() {
     map: createInitialMap(),
     reward: { options: [], selected: null, rerolled: false },
     skill: { options: [], selected: null, skipped: false },
+    magicBookPhase: { baseAttemptUsed: false, extraAttempts: 0, lastResult: null },
   };
 
   return recalculateDerivedStatsForState(initialState, { refillHpMp: true });
@@ -88,9 +90,17 @@ const statPanelTitleElement = document.getElementById('stat-panel-title');
 const statPanelPointsElement = document.getElementById('stat-panel-points');
 const statControlsElement = document.getElementById('stat-controls');
 const finishStatButton = document.getElementById('finish-stat-button');
+const recommendedStatButton = document.getElementById('recommended-stat-button');
 const skillPanel = document.getElementById('skill-panel');
 const skillPanelDescElement = document.getElementById('skill-panel-desc');
 const skillOptionsElement = document.getElementById('skill-options');
+const magicBookPanel = document.getElementById('magic-book-panel');
+const magicBookCountElement = document.getElementById('magic-book-count');
+const spellListElement = document.getElementById('spell-list');
+const magicBookStatusElement = document.getElementById('magic-book-status');
+const tryMagicBookButton = document.getElementById('try-magic-book-button');
+const extraMagicBookButton = document.getElementById('extra-magic-book-button');
+const finishMagicBookButton = document.getElementById('finish-magic-book-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -156,6 +166,7 @@ function createInitialPlayer() {
     inventory: createInitialInventory(),
     statPoints: 48,
     skills: [],
+    spells: [],
   };
 }
 
@@ -166,9 +177,14 @@ function ensureStateShape() {
   if (!Array.isArray(gameState.reward.options)) gameState.reward.options = [];
   if (typeof gameState.reward.rerolled !== 'boolean') gameState.reward.rerolled = false;
   if (!Array.isArray(gameState.player.skills)) gameState.player.skills = [];
+  if (!Array.isArray(gameState.player.spells)) gameState.player.spells = [];
   if (!gameState.skill) gameState.skill = { options: [], selected: null, skipped: false };
   if (!Array.isArray(gameState.skill.options)) gameState.skill.options = [];
   if (typeof gameState.skill.skipped !== 'boolean') gameState.skill.skipped = false;
+  if (!gameState.magicBookPhase) gameState.magicBookPhase = { baseAttemptUsed: false, extraAttempts: 0, lastResult: null };
+  if (typeof gameState.magicBookPhase.baseAttemptUsed !== 'boolean') gameState.magicBookPhase.baseAttemptUsed = false;
+  if (typeof gameState.magicBookPhase.extraAttempts !== 'number') gameState.magicBookPhase.extraAttempts = 0;
+  if (!('lastResult' in gameState.magicBookPhase)) gameState.magicBookPhase.lastResult = null;
 }
 
 function renderStatus() {
@@ -188,6 +204,7 @@ function renderStatus() {
   document.getElementById('game-phase').textContent = gameState.phase;
   document.getElementById('player-stat-points').textContent = String(gameState.player.statPoints);
   document.getElementById('player-skill-count').textContent = String(gameState.player.skills.length);
+  document.getElementById('player-spell-count').textContent = String(gameState.player.spells.length);
 }
 
 function getTileLabel(tile, x, y) {
@@ -273,9 +290,27 @@ function renderStatPanel() {
     increaseButton.textContent = '+';
     increaseButton.addEventListener('click', () => increaseStat(statName));
 
-    row.append(label, value, decreaseButton, increaseButton);
+    const increaseFiveButton = document.createElement('button');
+    increaseFiveButton.type = 'button';
+    increaseFiveButton.textContent = '+5';
+    increaseFiveButton.addEventListener('click', () => increaseStatBy(statName, 5));
+
+    row.append(label, value, decreaseButton, increaseButton, increaseFiveButton);
     statControlsElement.appendChild(row);
   });
+}
+
+function renderMagicBookPanel() {
+  if (gameState.phase !== 'IMAGINATION_MAGIC_BOOK') {
+    magicBookPanel.hidden = true;
+    return;
+  }
+  magicBookPanel.hidden = false;
+  magicBookCountElement.textContent = String(gameState.player.inventory.magicBook);
+  spellListElement.textContent = gameState.player.spells.length > 0 ? gameState.player.spells.join(', ') : '없음';
+  const baseAttempt = gameState.magicBookPhase.baseAttemptUsed ? '사용함' : '미사용';
+  const lastResult = gameState.magicBookPhase.lastResult || '아직 시도 기록이 없습니다.';
+  magicBookStatusElement.textContent = `기본 시도: ${baseAttempt} / 추가 시도: ${gameState.magicBookPhase.extraAttempts}회 / 보유 코인: ${gameState.player.coin} / 최근 결과: ${lastResult}`;
 }
 
 function renderSkillPanel() {
@@ -326,6 +361,7 @@ function enterSkillPhase() {
     gameState.phase = 'IMAGINATION_MAGIC_BOOK';
     renderSkillPanel();
     renderStatus();
+    renderMagicBookPanel();
     renderMap();
     return;
   }
@@ -360,6 +396,17 @@ function selectSkill(index) {
   gameState.phase = 'IMAGINATION_MAGIC_BOOK';
   renderSkillPanel();
   renderStatus();
+  renderMagicBookPanel();
+  renderMap();
+}
+
+function finishMagicBookPhase() {
+  if (gameState.phase !== 'IMAGINATION_MAGIC_BOOK') return;
+  gameState.phase = 'IMAGINATION_SHOP';
+  addLog('마법서 관련 행동을 마쳤습니다.');
+  addLog('다음 단계: 심상세계 5단계 - 상점 이용');
+  renderStatus();
+  renderMagicBookPanel();
   renderMap();
 }
 
@@ -393,6 +440,7 @@ function clearFloor() {
   renderRewardOptions();
   renderStatPanel();
   renderSkillPanel();
+  renderMagicBookPanel();
   renderMap();
 }
 
@@ -678,6 +726,7 @@ function selectReward(index) {
   renderRewardOptions();
   renderStatPanel();
   renderSkillPanel();
+  renderMagicBookPanel();
   renderMap();
 }
 
@@ -690,26 +739,74 @@ function recalculateDerivedStats(changedStatName) {
   if (refillMp) gameState.player.mp = gameState.player.maxMp;
 }
 
-function increaseStat(statName) {
+function increaseStatBy(statName, amount) {
   if (gameState.phase !== 'INITIAL_STAT' && gameState.phase !== 'IMAGINATION_STAT') return;
-  if (gameState.player.statPoints < 1) {
+  if (gameState.player.statPoints < amount) {
     addLog('스탯 포인트가 부족합니다.');
     return;
   }
 
   const levelCap = gameState.phase === 'INITIAL_STAT' ? 21 : (gameState.player.level >= 80 ? 100 : gameState.player.level + 20);
-  if (gameState.player.stats[statName] >= levelCap) {
+  if (gameState.player.stats[statName] + amount > levelCap) {
     addLog('현재 레벨 기준 최대치를 넘길 수 없습니다.');
     return;
   }
 
-  gameState.player.stats[statName] += 1;
-  gameState.player.statPoints -= 1;
+  gameState.player.stats[statName] += amount;
+  gameState.player.statPoints -= amount;
   if (statName === '체력' || statName === '지능' || statName === '지혜') recalculateDerivedStats(statName);
   if (statName === '지혜') addLog('지혜 효과는 추후 시스템에서 사용될 예정입니다.');
-  addLog(`${statName}이 1 증가했습니다.`);
+  addLog(`${statName}이 ${amount} 증가했습니다.`);
   renderStatus();
   renderStatPanel();
+}
+
+function increaseStat(statName) {
+  increaseStatBy(statName, 1);
+}
+
+function applyRecommendedStats() {
+  if (gameState.phase !== 'INITIAL_STAT') return;
+  gameState.player.stats = { 힘: 10, 민첩: 10, 체력: 10, 지능: 8, 지혜: 8, 외모: 8 };
+  gameState.player.statPoints = 0;
+  recalculateDerivedStatsForState(gameState, { refillHpMp: true });
+  addLog('추천 스탯 분배를 적용했습니다.');
+  renderStatus();
+  renderStatPanel();
+}
+
+function tryMagicBookAttempt(isExtra) {
+  if (gameState.phase !== 'IMAGINATION_MAGIC_BOOK') return;
+  if (gameState.player.inventory.magicBook < 1) return addLog('보유 마법서가 없습니다.');
+  if (!isExtra && gameState.magicBookPhase.baseAttemptUsed) return addLog('기본 습득 시도는 이미 사용했습니다.');
+
+  if (isExtra) {
+    if (gameState.player.coin < 1) return addLog('코인이 부족해 추가 시도를 할 수 없습니다.');
+    gameState.player.coin -= 1;
+    gameState.magicBookPhase.extraAttempts += 1;
+  } else {
+    gameState.magicBookPhase.baseAttemptUsed = true;
+  }
+
+  const success = gameState.player.stats.지혜 >= 50 || rollDice(50) < gameState.player.stats.지혜;
+  if (success) {
+    const unlearned = MAGIC_POOL_1.filter((spell) => !gameState.player.spells.includes(spell));
+    if (unlearned.length < 1) {
+      gameState.magicBookPhase.lastResult = '실패: 배울 수 있는 새 마법 없음';
+      addLog('마법서 습득 실패: 배울 수 있는 새 마법이 없습니다.');
+    } else {
+      const spell = unlearned[Math.floor(Math.random() * unlearned.length)];
+      gameState.player.spells.push(spell);
+      gameState.player.inventory.magicBook -= 1;
+      gameState.magicBookPhase.lastResult = `성공: ${spell}`;
+      addLog(`마법서 습득 성공: ${spell}을 배웠습니다.`);
+    }
+  } else {
+    gameState.magicBookPhase.lastResult = '실패: 마법서 유지';
+    addLog('마법서 습득 실패: 마법서는 사라지지 않습니다.');
+  }
+  renderStatus();
+  renderMagicBookPanel();
 }
 
 function decreaseStat(statName) {
@@ -742,12 +839,14 @@ function finishStatDistribution() {
     renderStatPanel();
     renderRewardOptions();
     renderSkillPanel();
+    renderMagicBookPanel();
     renderMap();
     return;
   }
 
   if (gameState.phase !== 'IMAGINATION_STAT') return;
   gameState.phase = 'IMAGINATION_SKILL';
+  gameState.magicBookPhase = { baseAttemptUsed: false, extraAttempts: 0, lastResult: null };
   addLog('스탯 분배를 마쳤습니다.');
   addLog('다음 단계: 심상세계 3단계 - 스킬 생성');
   enterSkillPhase();
@@ -755,6 +854,7 @@ function finishStatDistribution() {
   renderStatPanel();
   renderRewardOptions();
   renderSkillPanel();
+  renderMagicBookPanel();
   renderMap();
 }
 
@@ -811,6 +911,7 @@ function loadGame() {
     renderRewardOptions();
     renderStatPanel();
     renderSkillPanel();
+    renderMagicBookPanel();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
@@ -829,6 +930,7 @@ function resetGame() {
   renderRewardOptions();
   renderStatPanel();
   renderSkillPanel();
+  renderMagicBookPanel();
 }
 
 
@@ -841,6 +943,10 @@ function bindActions() {
   loadButton.addEventListener('click', loadGame);
   rerollRewardButton.addEventListener('click', rerollRewards);
   finishStatButton.addEventListener('click', finishStatDistribution);
+  recommendedStatButton.addEventListener('click', applyRecommendedStats);
+  tryMagicBookButton.addEventListener('click', () => tryMagicBookAttempt(false));
+  extraMagicBookButton.addEventListener('click', () => tryMagicBookAttempt(true));
+  finishMagicBookButton.addEventListener('click', finishMagicBookPhase);
 }
 
 function init() {

@@ -12,15 +12,16 @@
       <header class="status-panel" aria-label="상단 상태창">
         <div class="status-card">
           <h2>플레이어</h2>
-          <p>HP <strong id="player-hp">30/30</strong></p>
-          <p>MP <strong id="player-mp">12/12</strong></p>
+          <p>HP <strong id="player-hp">21/21</strong></p>
+          <p>MP <strong id="player-mp">5/5</strong></p>
           <p>코인 <strong id="player-coin">0</strong> / 레벨 <strong id="player-level">1</strong></p>
           <p>인벤: 초기화권 <strong id="inv-skill-reset">0</strong> / 무공서 <strong id="inv-martial-book">0</strong> / 마법서 <strong id="inv-magic-book">0</strong></p>
           <p>층 <strong id="game-floor">1</strong></p>
           <p>턴 <strong id="game-turn">1</strong></p>
-          <p>현재 단계 <strong id="game-phase">BATTLE</strong></p>
-          <p>스탯 포인트 <strong id="player-stat-points">0</strong></p>
+          <p>현재 단계 <strong id="game-phase">INITIAL_STAT</strong></p>
+          <p>스탯 포인트 <strong id="player-stat-points">48</strong></p>
           <p>보유 스킬 <strong id="player-skill-count">0</strong></p>
+          <p>보유 마법 <strong id="player-spell-count">0</strong></p>
         </div>
         <div class="status-card">
           <h2>적 (1명)</h2>
@@ -63,6 +64,7 @@
       <section class="stat-panel" id="stat-panel" hidden>
         <h2 id="stat-panel-title">스탯 분배</h2>
         <p>남은 스탯 포인트: <strong id="stat-panel-points">0</strong></p>
+        <button type="button" id="recommended-stat-button">추천 분배</button>
         <div id="stat-controls" class="stat-controls"></div>
         <button type="button" id="finish-stat-button">스탯 분배 완료</button>
       </section>
@@ -71,6 +73,16 @@
         <h2>심상세계 3단계: 스킬 생성</h2>
         <p id="skill-panel-desc">스킬 후보를 선택하세요.</p>
         <div id="skill-options"></div>
+      </section>
+
+      <section class="magic-book-panel" id="magic-book-panel" hidden>
+        <h2>심상세계 4단계: 마법서 관련 행동</h2>
+        <p>보유 마법서: <strong id="magic-book-count">0</strong></p>
+        <p>보유 마법: <strong id="spell-list">없음</strong></p>
+        <p id="magic-book-status">마법서 습득을 시도할 수 있습니다.</p>
+        <button type="button" id="try-magic-book-button">마법서 습득 시도</button>
+        <button type="button" id="extra-magic-book-button">코인 1개로 추가 시도</button>
+        <button type="button" id="finish-magic-book-button">마법서 단계 완료</button>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">

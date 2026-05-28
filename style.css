@@ -41,7 +41,8 @@ body {
 .manage-panel,
 .map-panel,
 .stat-panel,
-.skill-panel {
+.skill-panel,
+.magic-book-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -121,7 +122,7 @@ body {
 
 .stat-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto auto auto;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
@@ -148,6 +149,11 @@ body {
 .skill-button span {
   font-size: 0.78rem;
   opacity: 0.9;
+}
+
+.magic-book-panel {
+  display: grid;
+  gap: 0.45rem;
 }
 
 button {
