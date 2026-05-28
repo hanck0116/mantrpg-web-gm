@@ -59,6 +59,7 @@ function createInitialGameState() {
       stats: { 힘: 10, 민첩: 10, 체력: 10, 지능: 8, 지혜: 8, 외모: 8 },
       state: [],
       inventory: createInitialInventory(),
+      statPoints: 0,
     },
     enemy: {
       name: '그림자 도적',
@@ -83,6 +84,11 @@ const saveButton = document.getElementById('save-game-button');
 const loadButton = document.getElementById('load-game-button');
 const rewardPanel = document.getElementById('reward-panel');
 const rewardOptionsElement = document.getElementById('reward-options');
+const rerollRewardButton = document.getElementById('reroll-reward-button');
+const statPanel = document.getElementById('stat-panel');
+const statPanelPointsElement = document.getElementById('stat-panel-points');
+const statControlsElement = document.getElementById('stat-controls');
+const finishStatButton = document.getElementById('finish-stat-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -118,7 +124,10 @@ function clearIncomingAttacks() {
 
 function ensureStateShape() {
   if (!gameState.player.inventory) gameState.player.inventory = createInitialInventory();
+  if (typeof gameState.player.statPoints !== 'number') gameState.player.statPoints = 0;
   if (!gameState.reward) gameState.reward = { options: [], selected: null, rerolled: false };
+  if (!Array.isArray(gameState.reward.options)) gameState.reward.options = [];
+  if (typeof gameState.reward.rerolled !== 'boolean') gameState.reward.rerolled = false;
 }
 
 function renderStatus() {
@@ -136,6 +145,7 @@ function renderStatus() {
   document.getElementById('game-floor').textContent = String(gameState.floor);
   document.getElementById('game-turn').textContent = String(gameState.turn);
   document.getElementById('game-phase').textContent = gameState.phase;
+  document.getElementById('player-stat-points').textContent = String(gameState.player.statPoints);
 }
 
 function getTileLabel(tile, x, y) {
@@ -189,6 +199,36 @@ function renderRewardOptions() {
   });
 }
 
+function renderStatPanel() {
+  if (gameState.phase !== 'IMAGINATION_STAT') {
+    statPanel.hidden = true;
+    statControlsElement.innerHTML = '';
+    return;
+  }
+
+  statPanel.hidden = false;
+  statPanelPointsElement.textContent = String(gameState.player.statPoints);
+  statControlsElement.innerHTML = '';
+  ['힘', '민첩', '체력', '지능', '지혜', '외모'].forEach((statName) => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+
+    const label = document.createElement('span');
+    label.textContent = statName;
+
+    const value = document.createElement('strong');
+    value.textContent = String(gameState.player.stats[statName]);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '+';
+    button.addEventListener('click', () => increaseStat(statName));
+
+    row.append(label, value, button);
+    statControlsElement.appendChild(row);
+  });
+}
+
 function describeTile(x, y) {
   const tile = gameState.map.tiles[y][x];
   const terrainLabel = tile.terrain === 'broken' ? '파괴 지형' : '석재 바닥';
@@ -204,17 +244,47 @@ function clearFloor() {
   gameState.phase = 'REWARD_SELECT';
   gameState.enemy.hp = 0;
   gameState.player.level += 5;
+  gameState.player.statPoints += 15;
   gameState.player.coin += 1;
   gameState.player.hp = gameState.player.maxHp;
   gameState.player.mp = gameState.player.maxMp;
   gameState.player.state = [];
   gameState.reward.options = [weightedPick(REWARD_TABLE), weightedPick(REWARD_TABLE)];
   gameState.reward.selected = null;
+  gameState.reward.rerolled = false;
   addLog('층 클리어: 적을 쓰러뜨렸습니다.');
-  addLog('레벨 +5, 기본 코인 +1, HP/MP가 모두 회복되었습니다.');
+  addLog('레벨 +5, 스탯 포인트 +15, 기본 코인 +1, HP/MP가 모두 회복되었습니다.');
   addLog('보상 후보 2개 중 하나를 선택하세요.');
+  renderStatus();
+  renderRewardOptions();
+  renderStatPanel();
+  renderMap();
+}
+
+function rerollRewards() {
+  ensureStateShape();
+  if (gameState.phase !== 'REWARD_SELECT') return;
+  if (gameState.reward.selected) {
+    addLog('이미 보상을 선택해 리롤할 수 없습니다.');
+    return;
+  }
+  if (gameState.reward.rerolled) {
+    addLog('이미 리롤했습니다.');
+    return;
+  }
+  if (gameState.player.coin < 1) {
+    addLog('코인이 부족해 리롤할 수 없습니다.');
+    return;
+  }
+
+  gameState.player.coin -= 1;
+  gameState.reward.options = [weightedPick(REWARD_TABLE), weightedPick(REWARD_TABLE)];
+  gameState.reward.rerolled = true;
+  addLog('코인 1개를 사용해 보상 후보를 다시 생성했습니다.');
+  renderStatus();
   renderRewardOptions();
 }
+
 
 function canBattleAction() {
   if (gameState.phase !== 'BATTLE') {
@@ -471,6 +541,55 @@ function selectReward(index) {
   addLog('다음 단계: 심상세계 2단계 - 스탯 분배');
   renderStatus();
   renderRewardOptions();
+  renderStatPanel();
+  renderMap();
+}
+
+
+function recalculateDerivedStats(changedStatName) {
+  const newMaxHp = 20 + gameState.player.stats.체력;
+  const newMaxMp = 4 + gameState.player.stats.지능;
+
+  gameState.player.maxHp = newMaxHp;
+  gameState.player.maxMp = newMaxMp;
+
+  if (changedStatName === '체력') gameState.player.hp = gameState.player.maxHp;
+  if (changedStatName === '지능') gameState.player.mp = gameState.player.maxMp;
+
+  if (gameState.player.hp > gameState.player.maxHp) gameState.player.hp = gameState.player.maxHp;
+  if (gameState.player.mp > gameState.player.maxMp) gameState.player.mp = gameState.player.maxMp;
+}
+
+function increaseStat(statName) {
+  if (gameState.phase !== 'IMAGINATION_STAT') return;
+  if (gameState.player.statPoints < 1) {
+    addLog('스탯 포인트가 부족합니다.');
+    return;
+  }
+
+  const levelCap = gameState.player.level >= 80 ? 100 : gameState.player.level + 20;
+  if (gameState.player.stats[statName] >= levelCap) {
+    addLog('현재 레벨 기준 최대치를 넘길 수 없습니다.');
+    return;
+  }
+
+  gameState.player.stats[statName] += 1;
+  gameState.player.statPoints -= 1;
+  if (statName === '체력' || statName === '지능' || statName === '지혜') recalculateDerivedStats(statName);
+  if (statName === '지혜') addLog('지혜 효과는 추후 시스템에서 사용될 예정입니다.');
+  addLog(`${statName}이 1 증가했습니다.`);
+  renderStatus();
+  renderStatPanel();
+}
+
+function finishStatDistribution() {
+  if (gameState.phase !== 'IMAGINATION_STAT') return;
+  gameState.phase = 'IMAGINATION_SKILL';
+  addLog('스탯 분배를 마쳤습니다.');
+  addLog('다음 단계: 심상세계 3단계 - 스킬 생성');
+  renderStatus();
+  renderStatPanel();
+  renderRewardOptions();
   renderMap();
 }
 
@@ -520,6 +639,7 @@ function loadGame() {
     renderStatus();
     renderMap();
     renderRewardOptions();
+    renderStatPanel();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
@@ -535,7 +655,9 @@ function resetGame() {
   renderStatus();
   renderMap();
   renderRewardOptions();
+  renderStatPanel();
 }
+
 
 function bindActions() {
   actionButtons.forEach((button) => {
@@ -544,6 +666,8 @@ function bindActions() {
   newGameButton.addEventListener('click', resetGame);
   saveButton.addEventListener('click', saveGame);
   loadButton.addEventListener('click', loadGame);
+  rerollRewardButton.addEventListener('click', rerollRewards);
+  finishStatButton.addEventListener('click', finishStatDistribution);
 }
 
 function init() {
