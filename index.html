@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#111827" />
+    <title>ManTRPG Web GM</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="status-panel" aria-label="상단 상태창">
+        <div class="status-card">
+          <h2>플레이어</h2>
+          <p>HP <strong id="player-hp">30/30</strong></p>
+          <p>MP <strong id="player-mp">12/12</strong></p>
+          <p>코인 <strong id="player-coin">0</strong></p>
+        </div>
+        <div class="status-card">
+          <h2>적 (1명)</h2>
+          <p>이름 <strong id="enemy-name">그림자 도적</strong></p>
+          <p>HP <strong id="enemy-hp">20/20</strong></p>
+          <p>상태 <strong id="enemy-state">대기</strong></p>
+        </div>
+      </header>
+
+      <section class="log-panel" aria-label="중앙 전투 로그">
+        <h1>전투 로그</h1>
+        <ul id="combat-log" class="log-list"></ul>
+      </section>
+
+      <section class="action-panel" aria-label="하단 행동 버튼">
+        <button type="button" data-action="attack">공격</button>
+        <button type="button" data-action="defend">방어</button>
+        <button type="button" data-action="move">이동</button>
+        <button type="button" data-action="magic">마법</button>
+        <button type="button" data-action="observe">관찰</button>
+      </section>
+
+      <section class="map-panel" aria-label="하단 2D 전술 맵">
+        <h2>7x7 전술 맵</h2>
+        <div id="tactical-map" class="tactical-map" role="grid" aria-label="7x7 고정 전술 맵"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
