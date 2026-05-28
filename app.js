@@ -50,25 +50,12 @@ function createInitialInventory() {
 }
 
 function createInitialGameState() {
-  return {
-    phase: 'BATTLE',
+  const player = createInitialPlayer();
+  const initialState = {
+    phase: 'INITIAL_STAT',
     floor: 1,
     turn: 1,
-    player: {
-      name: '하르벤',
-      level: 1,
-      hp: 30,
-      maxHp: 30,
-      mp: 12,
-      maxMp: 12,
-      coin: 0,
-      position: { x: 3, y: 5 },
-      stats: { 힘: 10, 민첩: 10, 체력: 10, 지능: 8, 지혜: 8, 외모: 8 },
-      state: [],
-      inventory: createInitialInventory(),
-      statPoints: 0,
-      skills: [],
-    },
+    player,
     enemy: {
       name: '그림자 도적',
       hp: 20,
@@ -81,6 +68,8 @@ function createInitialGameState() {
     reward: { options: [], selected: null, rerolled: false },
     skill: { options: [], selected: null, skipped: false },
   };
+
+  return recalculateDerivedStatsForState(initialState, { refillHpMp: true });
 }
 
 let gameState = createInitialGameState();
@@ -95,6 +84,7 @@ const rewardPanel = document.getElementById('reward-panel');
 const rewardOptionsElement = document.getElementById('reward-options');
 const rerollRewardButton = document.getElementById('reroll-reward-button');
 const statPanel = document.getElementById('stat-panel');
+const statPanelTitleElement = document.getElementById('stat-panel-title');
 const statPanelPointsElement = document.getElementById('stat-panel-points');
 const statControlsElement = document.getElementById('stat-controls');
 const finishStatButton = document.getElementById('finish-stat-button');
@@ -132,6 +122,41 @@ function clearIncomingAttacks() {
   for (let y = 0; y < gameState.map.size; y += 1) {
     for (let x = 0; x < gameState.map.size; x += 1) gameState.map.tiles[y][x].incomingAttack = false;
   }
+}
+
+function recalculateDerivedStatsForState(state, options = {}) {
+  const { refillHpMp = false } = options;
+  state.player.maxHp = 20 + state.player.stats.체력;
+  state.player.maxMp = 4 + state.player.stats.지능;
+
+  if (refillHpMp) {
+    state.player.hp = state.player.maxHp;
+    state.player.mp = state.player.maxMp;
+  } else {
+    if (state.player.hp > state.player.maxHp) state.player.hp = state.player.maxHp;
+    if (state.player.mp > state.player.maxMp) state.player.mp = state.player.maxMp;
+  }
+
+  return state;
+}
+
+
+function createInitialPlayer() {
+  return {
+    name: '하르벤',
+    level: 1,
+    hp: 0,
+    maxHp: 0,
+    mp: 0,
+    maxMp: 0,
+    coin: 0,
+    position: { x: 3, y: 5 },
+    stats: { 힘: 1, 민첩: 1, 체력: 1, 지능: 1, 지혜: 1, 외모: 1 },
+    state: [],
+    inventory: createInitialInventory(),
+    statPoints: 48,
+    skills: [],
+  };
 }
 
 function ensureStateShape() {
@@ -217,13 +242,14 @@ function renderRewardOptions() {
 }
 
 function renderStatPanel() {
-  if (gameState.phase !== 'IMAGINATION_STAT') {
+  if (gameState.phase !== 'INITIAL_STAT' && gameState.phase !== 'IMAGINATION_STAT') {
     statPanel.hidden = true;
     statControlsElement.innerHTML = '';
     return;
   }
 
   statPanel.hidden = false;
+  statPanelTitleElement.textContent = gameState.phase === 'INITIAL_STAT' ? '캐릭터 생성: 초기 스탯 분배' : '심상세계 2단계: 스탯 분배';
   statPanelPointsElement.textContent = String(gameState.player.statPoints);
   statControlsElement.innerHTML = '';
   ['힘', '민첩', '체력', '지능', '지혜', '외모'].forEach((statName) => {
@@ -236,12 +262,18 @@ function renderStatPanel() {
     const value = document.createElement('strong');
     value.textContent = String(gameState.player.stats[statName]);
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = '+';
-    button.addEventListener('click', () => increaseStat(statName));
+    const decreaseButton = document.createElement('button');
+    decreaseButton.type = 'button';
+    decreaseButton.textContent = '-';
+    decreaseButton.disabled = gameState.phase !== 'INITIAL_STAT';
+    decreaseButton.addEventListener('click', () => decreaseStat(statName));
 
-    row.append(label, value, button);
+    const increaseButton = document.createElement('button');
+    increaseButton.type = 'button';
+    increaseButton.textContent = '+';
+    increaseButton.addEventListener('click', () => increaseStat(statName));
+
+    row.append(label, value, decreaseButton, increaseButton);
     statControlsElement.appendChild(row);
   });
 }
@@ -651,27 +683,21 @@ function selectReward(index) {
 
 
 function recalculateDerivedStats(changedStatName) {
-  const newMaxHp = 20 + gameState.player.stats.체력;
-  const newMaxMp = 4 + gameState.player.stats.지능;
-
-  gameState.player.maxHp = newMaxHp;
-  gameState.player.maxMp = newMaxMp;
-
-  if (changedStatName === '체력') gameState.player.hp = gameState.player.maxHp;
-  if (changedStatName === '지능') gameState.player.mp = gameState.player.maxMp;
-
-  if (gameState.player.hp > gameState.player.maxHp) gameState.player.hp = gameState.player.maxHp;
-  if (gameState.player.mp > gameState.player.maxMp) gameState.player.mp = gameState.player.maxMp;
+  const refillHp = changedStatName === '체력';
+  const refillMp = changedStatName === '지능';
+  recalculateDerivedStatsForState(gameState);
+  if (refillHp) gameState.player.hp = gameState.player.maxHp;
+  if (refillMp) gameState.player.mp = gameState.player.maxMp;
 }
 
 function increaseStat(statName) {
-  if (gameState.phase !== 'IMAGINATION_STAT') return;
+  if (gameState.phase !== 'INITIAL_STAT' && gameState.phase !== 'IMAGINATION_STAT') return;
   if (gameState.player.statPoints < 1) {
     addLog('스탯 포인트가 부족합니다.');
     return;
   }
 
-  const levelCap = gameState.player.level >= 80 ? 100 : gameState.player.level + 20;
+  const levelCap = gameState.phase === 'INITIAL_STAT' ? 21 : (gameState.player.level >= 80 ? 100 : gameState.player.level + 20);
   if (gameState.player.stats[statName] >= levelCap) {
     addLog('현재 레벨 기준 최대치를 넘길 수 없습니다.');
     return;
@@ -686,7 +712,40 @@ function increaseStat(statName) {
   renderStatPanel();
 }
 
+function decreaseStat(statName) {
+  if (gameState.phase !== 'INITIAL_STAT') return;
+  if (gameState.player.stats[statName] <= 1) {
+    addLog('초기 스탯은 1 미만으로 낮출 수 없습니다.');
+    return;
+  }
+
+  gameState.player.stats[statName] -= 1;
+  gameState.player.statPoints += 1;
+  if (statName === '체력' || statName === '지능') recalculateDerivedStats(statName);
+  addLog(`${statName}이 1 감소했습니다.`);
+  renderStatus();
+  renderStatPanel();
+}
+
 function finishStatDistribution() {
+  if (gameState.phase === 'INITIAL_STAT') {
+    if (gameState.player.statPoints !== 0) {
+      addLog('초기 스탯 포인트를 모두 분배해야 합니다.');
+      return;
+    }
+
+    recalculateDerivedStatsForState(gameState, { refillHpMp: true });
+    gameState.phase = 'BATTLE';
+    addLog('초기 스탯 분배가 완료되었습니다.');
+    addLog('1층 전투를 시작합니다.');
+    renderStatus();
+    renderStatPanel();
+    renderRewardOptions();
+    renderSkillPanel();
+    renderMap();
+    return;
+  }
+
   if (gameState.phase !== 'IMAGINATION_STAT') return;
   gameState.phase = 'IMAGINATION_SKILL';
   addLog('스탯 분배를 마쳤습니다.');
@@ -700,6 +759,11 @@ function finishStatDistribution() {
 }
 
 function handleObserve() {
+  if (gameState.phase === 'INITIAL_STAT') {
+    addLog('초기 스탯 분배 중입니다.');
+    return;
+  }
+
   const enemy = gameState.enemy;
   const distance = getDistance(gameState.player.position, enemy.position);
   let dangerTiles = 0;
@@ -757,8 +821,9 @@ function resetGame() {
   gameState = createInitialGameState();
   localStorage.removeItem(SAVE_KEY);
   logElement.innerHTML = '';
-  addLog('전투 시작: 적 1명과 조우했습니다.');
-  addLog('현재 버전: 전투 턴과 주사위 엔진 구현 단계입니다.');
+  addLog('새 게임을 시작합니다.');
+  addLog('초기 스탯 총합 54가 되도록 스탯 포인트 48을 모두 분배하세요.');
+  addLog('분배 완료 후 1층 전투가 시작됩니다.');
   renderStatus();
   renderMap();
   renderRewardOptions();
