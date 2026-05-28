@@ -23,7 +23,7 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto auto auto;
   min-height: 100dvh;
   gap: 0.6rem;
   padding: 0.75rem;
@@ -38,6 +38,7 @@ body {
 .status-card,
 .log-panel,
 .action-panel,
+.manage-panel,
 .map-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -77,10 +78,18 @@ body {
   font-size: 0.85rem;
 }
 
+.manage-panel,
 .action-panel {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.4rem;
+}
+
+.manage-panel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.action-panel {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 button {
@@ -108,12 +117,28 @@ button {
   font-size: 0.65rem;
 }
 
+.tile.fire {
+  background: #7c2d12;
+}
+
+.tile.brand {
+  background: #5b21b6;
+}
+
+.tile.broken {
+  background: #334155;
+}
+
+.tile.incoming {
+  background: #7f1d1d;
+}
+
 .tile.player {
-  background: color-mix(in srgb, var(--player) 35%, #0b1220);
+  background: color-mix(in srgb, var(--player) 45%, #0b1220);
 }
 
 .tile.enemy {
-  background: color-mix(in srgb, var(--enemy) 35%, #0b1220);
+  background: color-mix(in srgb, var(--enemy) 45%, #0b1220);
 }
 
 @media (min-width: 700px) {

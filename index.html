@@ -15,6 +15,8 @@
           <p>HP <strong id="player-hp">30/30</strong></p>
           <p>MP <strong id="player-mp">12/12</strong></p>
           <p>코인 <strong id="player-coin">0</strong></p>
+          <p>층 <strong id="game-floor">1</strong></p>
+          <p>턴 <strong id="game-turn">1</strong></p>
         </div>
         <div class="status-card">
           <h2>적 (1명)</h2>
@@ -27,6 +29,12 @@
       <section class="log-panel" aria-label="중앙 전투 로그">
         <h1>전투 로그</h1>
         <ul id="combat-log" class="log-list"></ul>
+      </section>
+
+      <section class="manage-panel" aria-label="게임 관리 버튼">
+        <button type="button" id="new-game-button">새 게임</button>
+        <button type="button" id="save-game-button">저장</button>
+        <button type="button" id="load-game-button">불러오기</button>
       </section>
 
       <section class="action-panel" aria-label="하단 행동 버튼">
