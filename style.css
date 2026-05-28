@@ -47,7 +47,8 @@ body {
 .stat-panel,
 .skill-panel,
 .magic-book-panel,
-.shop-panel {
+.shop-panel,
+.next-floor-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -157,7 +158,8 @@ body {
 }
 
 .magic-book-panel,
-.shop-panel {
+.shop-panel,
+.next-floor-panel {
   display: grid;
   gap: 0.45rem;
 }
