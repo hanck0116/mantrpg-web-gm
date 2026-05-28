@@ -20,6 +20,7 @@
           <p>턴 <strong id="game-turn">1</strong></p>
           <p>현재 단계 <strong id="game-phase">BATTLE</strong></p>
           <p>스탯 포인트 <strong id="player-stat-points">0</strong></p>
+          <p>보유 스킬 <strong id="player-skill-count">0</strong></p>
         </div>
         <div class="status-card">
           <h2>적 (1명)</h2>
@@ -64,6 +65,12 @@
         <p>남은 스탯 포인트: <strong id="stat-panel-points">0</strong></p>
         <div id="stat-controls" class="stat-controls"></div>
         <button type="button" id="finish-stat-button">스탯 분배 완료</button>
+      </section>
+
+      <section class="skill-panel" id="skill-panel" hidden>
+        <h2>심상세계 3단계: 스킬 생성</h2>
+        <p id="skill-panel-desc">스킬 후보를 선택하세요.</p>
+        <div id="skill-options"></div>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">
