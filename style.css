@@ -39,7 +39,8 @@ body {
 .log-panel,
 .action-panel,
 .manage-panel,
-.map-panel {
+.map-panel,
+.stat-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -108,6 +109,26 @@ body {
 
 .reward-button {
   min-height: 2.4rem;
+}
+
+
+.stat-controls {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.45rem 0 0.65rem;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.stat-row button {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
 }
 
 button {
