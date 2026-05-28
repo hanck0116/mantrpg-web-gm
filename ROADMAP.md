@@ -7,14 +7,14 @@
 - app.js 생성
 - 모바일 레이아웃 생성
 
-## Phase 2: Game State
+## Phase 2: Game State (진행 중)
 
 - player state 구현
 - enemy state 구현
 - map state 구현
 - localStorage 저장 구현
 
-## Phase 3: Tactical Map
+## Phase 3: Tactical Map (진행 중)
 
 - 2D grid map 구현
 - player 표시
