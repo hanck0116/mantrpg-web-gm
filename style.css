@@ -40,7 +40,8 @@ body {
 .action-panel,
 .manage-panel,
 .map-panel,
-.stat-panel {
+.stat-panel,
+.skill-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -129,6 +130,24 @@ body {
 .stat-row button {
   min-height: 2.5rem;
   min-width: 2.5rem;
+}
+
+#skill-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.skill-button {
+  min-height: 3.1rem;
+  text-align: left;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem;
+}
+
+.skill-button span {
+  font-size: 0.78rem;
+  opacity: 0.9;
 }
 
 button {

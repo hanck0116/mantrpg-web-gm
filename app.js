@@ -8,6 +8,13 @@ const REWARD_TABLE = [
   { type: 'COIN_PLUS_1', label: '추가 코인 +1', weight: 40 },
   { type: 'COIN_PLUS_2', label: '추가 코인 +2', weight: 20 },
 ];
+const SKILL_TEMPLATES = [
+  { type: 'POWER_STRIKE', label: '강타', description: '힘 판정으로 적에게 큰 피해를 준다.', mpCost: 2, damage: 8, stat: '힘' },
+  { type: 'QUICK_SLASH', label: '신속 베기', description: '민첩 판정으로 적을 빠르게 공격한다.', mpCost: 2, damage: 6, stat: '민첩' },
+  { type: 'MANA_BOLT', label: '마력탄', description: '지능 판정으로 원거리 마법 피해를 준다.', mpCost: 3, damage: 7, stat: '지능' },
+  { type: 'FOCUSED_GUARD', label: '집중 방어', description: '다음 적 공격 피해를 크게 줄인다.', mpCost: 1, damage: 0, stat: '체력' },
+  { type: 'TACTICAL_OBSERVE', label: '전술 관찰', description: '적의 다음 행동 예고와 위험 타일 정보를 강화한다.', mpCost: 1, damage: 0, stat: '지혜' },
+];
 
 function createBaseTile(x, y) {
   return {
@@ -60,6 +67,7 @@ function createInitialGameState() {
       state: [],
       inventory: createInitialInventory(),
       statPoints: 0,
+      skills: [],
     },
     enemy: {
       name: '그림자 도적',
@@ -71,6 +79,7 @@ function createInitialGameState() {
     },
     map: createInitialMap(),
     reward: { options: [], selected: null, rerolled: false },
+    skill: { options: [], selected: null, skipped: false },
   };
 }
 
@@ -89,6 +98,9 @@ const statPanel = document.getElementById('stat-panel');
 const statPanelPointsElement = document.getElementById('stat-panel-points');
 const statControlsElement = document.getElementById('stat-controls');
 const finishStatButton = document.getElementById('finish-stat-button');
+const skillPanel = document.getElementById('skill-panel');
+const skillPanelDescElement = document.getElementById('skill-panel-desc');
+const skillOptionsElement = document.getElementById('skill-options');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -128,6 +140,10 @@ function ensureStateShape() {
   if (!gameState.reward) gameState.reward = { options: [], selected: null, rerolled: false };
   if (!Array.isArray(gameState.reward.options)) gameState.reward.options = [];
   if (typeof gameState.reward.rerolled !== 'boolean') gameState.reward.rerolled = false;
+  if (!Array.isArray(gameState.player.skills)) gameState.player.skills = [];
+  if (!gameState.skill) gameState.skill = { options: [], selected: null, skipped: false };
+  if (!Array.isArray(gameState.skill.options)) gameState.skill.options = [];
+  if (typeof gameState.skill.skipped !== 'boolean') gameState.skill.skipped = false;
 }
 
 function renderStatus() {
@@ -146,6 +162,7 @@ function renderStatus() {
   document.getElementById('game-turn').textContent = String(gameState.turn);
   document.getElementById('game-phase').textContent = gameState.phase;
   document.getElementById('player-stat-points').textContent = String(gameState.player.statPoints);
+  document.getElementById('player-skill-count').textContent = String(gameState.player.skills.length);
 }
 
 function getTileLabel(tile, x, y) {
@@ -229,6 +246,91 @@ function renderStatPanel() {
   });
 }
 
+function renderSkillPanel() {
+  if (gameState.phase !== 'IMAGINATION_SKILL') {
+    skillPanel.hidden = true;
+    skillOptionsElement.innerHTML = '';
+    return;
+  }
+
+  skillPanel.hidden = false;
+  skillOptionsElement.innerHTML = '';
+  if (gameState.player.level < 10) {
+    skillPanelDescElement.textContent = '레벨 조건 미달로 스킬 생성이 생략되었습니다.';
+    return;
+  }
+
+  skillPanelDescElement.textContent = gameState.skill.selected ? '스킬 선택이 완료되었습니다.' : '스킬 후보 3개 중 1개를 선택하세요.';
+  gameState.skill.options.forEach((option, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'skill-button';
+    button.innerHTML = `<strong>${option.label}</strong><span>${option.description}</span><span>MP ${option.mpCost} / 기준 ${option.stat}</span>`;
+    button.addEventListener('click', () => selectSkill(index));
+    if (gameState.skill.selected) button.disabled = true;
+    skillOptionsElement.appendChild(button);
+  });
+}
+
+function pickRandomSkillOptions(count) {
+  const pool = [...SKILL_TEMPLATES];
+  const picked = [];
+  while (pool.length > 0 && picked.length < count) {
+    const index = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(index, 1)[0]);
+  }
+  return picked;
+}
+
+function enterSkillPhase() {
+  if (gameState.phase !== 'IMAGINATION_SKILL') return;
+
+  if (gameState.player.level < 10) {
+    gameState.skill.options = [];
+    gameState.skill.selected = null;
+    gameState.skill.skipped = true;
+    addLog('레벨 10 미만이므로 스킬 생성 단계를 생략합니다.');
+    addLog('다음 단계: 심상세계 4단계 - 마법서 관련 행동');
+    gameState.phase = 'IMAGINATION_MAGIC_BOOK';
+    renderSkillPanel();
+    renderStatus();
+    renderMap();
+    return;
+  }
+
+  gameState.skill.options = pickRandomSkillOptions(3);
+  gameState.skill.selected = null;
+  gameState.skill.skipped = false;
+  addLog('스킬 후보 3개 중 하나를 선택하세요.');
+  renderSkillPanel();
+}
+
+function selectSkill(index) {
+  ensureStateShape();
+  if (gameState.phase !== 'IMAGINATION_SKILL') {
+    addLog('현재 단계에서는 스킬을 선택할 수 없습니다.');
+    return;
+  }
+  if (gameState.skill.selected) {
+    addLog('이미 스킬을 선택했습니다.');
+    return;
+  }
+  const selectedSkill = gameState.skill.options[index];
+  if (!selectedSkill) {
+    addLog('유효하지 않은 스킬 선택입니다.');
+    return;
+  }
+
+  gameState.player.skills.push(selectedSkill);
+  gameState.skill.selected = selectedSkill;
+  addLog(`스킬 선택: ${selectedSkill.label}`);
+  addLog('다음 단계: 심상세계 4단계 - 마법서 관련 행동');
+  gameState.phase = 'IMAGINATION_MAGIC_BOOK';
+  renderSkillPanel();
+  renderStatus();
+  renderMap();
+}
+
 function describeTile(x, y) {
   const tile = gameState.map.tiles[y][x];
   const terrainLabel = tile.terrain === 'broken' ? '파괴 지형' : '석재 바닥';
@@ -258,6 +360,7 @@ function clearFloor() {
   renderStatus();
   renderRewardOptions();
   renderStatPanel();
+  renderSkillPanel();
   renderMap();
 }
 
@@ -542,6 +645,7 @@ function selectReward(index) {
   renderStatus();
   renderRewardOptions();
   renderStatPanel();
+  renderSkillPanel();
   renderMap();
 }
 
@@ -587,9 +691,11 @@ function finishStatDistribution() {
   gameState.phase = 'IMAGINATION_SKILL';
   addLog('스탯 분배를 마쳤습니다.');
   addLog('다음 단계: 심상세계 3단계 - 스킬 생성');
+  enterSkillPhase();
   renderStatus();
   renderStatPanel();
   renderRewardOptions();
+  renderSkillPanel();
   renderMap();
 }
 
@@ -640,6 +746,7 @@ function loadGame() {
     renderMap();
     renderRewardOptions();
     renderStatPanel();
+    renderSkillPanel();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
@@ -656,6 +763,7 @@ function resetGame() {
   renderMap();
   renderRewardOptions();
   renderStatPanel();
+  renderSkillPanel();
 }
 
 
