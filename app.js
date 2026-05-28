@@ -16,6 +16,19 @@ const SKILL_TEMPLATES = [
   { type: 'TACTICAL_OBSERVE', label: '전술 관찰', description: '적의 다음 행동 예고와 위험 타일 정보를 강화한다.', mpCost: 1, damage: 0, stat: '지혜' },
 ];
 const MAGIC_POOL_1 = ['라이트', '파이어', '아이스', '윈드', '매직 애로우', '그리스', '디그', '다크니스'];
+const SHOP_ITEMS = {
+  buy: {
+    REWARD_REROLL: { label: '보상 리롤권', price: 1, description: '다음 보상 선택 단계에서 리롤에 사용한다.' },
+    BASIC_MAGIC_BOOK: { label: '기초 마법서', price: 3, description: '마법서 1개를 획득한다.' },
+    MARTIAL_BOOK: { label: '무공서', price: 3, description: '무공서 1개를 획득한다.' },
+    SKILL_RESET_TICKET: { label: '스킬 초기화권', price: 5, description: '스킬 초기화권 1개를 획득한다.' },
+  },
+  sell: {
+    SELL_MAGIC_BOOK: { label: '마법서 판매', price: 1, description: '마법서 1개를 판매한다.' },
+    SELL_MARTIAL_BOOK: { label: '무공서 판매', price: 1, description: '무공서 1개를 판매한다.' },
+    SELL_SKILL_RESET_TICKET: { label: '스킬 초기화권 판매', price: 2, description: '스킬 초기화권 1개를 판매한다.' },
+  },
+};
 
 function createBaseTile(x, y) {
   return {
@@ -47,7 +60,7 @@ function createInitialMap() {
 }
 
 function createInitialInventory() {
-  return { skillResetTicket: 0, martialBook: 0, magicBook: 0 };
+  return { skillResetTicket: 0, martialBook: 0, magicBook: 0, rewardRerollTicket: 0 };
 }
 
 function createInitialGameState() {
@@ -69,6 +82,7 @@ function createInitialGameState() {
     reward: { options: [], selected: null, rerolled: false },
     skill: { options: [], selected: null, skipped: false },
     magicBookPhase: { baseAttemptUsed: false, extraAttempts: 0, lastResult: null },
+    shop: { log: [] },
   };
 
   return recalculateDerivedStatsForState(initialState, { refillHpMp: true });
@@ -101,6 +115,11 @@ const magicBookStatusElement = document.getElementById('magic-book-status');
 const tryMagicBookButton = document.getElementById('try-magic-book-button');
 const extraMagicBookButton = document.getElementById('extra-magic-book-button');
 const finishMagicBookButton = document.getElementById('finish-magic-book-button');
+const shopPanel = document.getElementById('shop-panel');
+const shopCoinElement = document.getElementById('shop-coin');
+const shopBuyOptionsElement = document.getElementById('shop-buy-options');
+const shopSellOptionsElement = document.getElementById('shop-sell-options');
+const finishShopButton = document.getElementById('finish-shop-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -172,6 +191,10 @@ function createInitialPlayer() {
 
 function ensureStateShape() {
   if (!gameState.player.inventory) gameState.player.inventory = createInitialInventory();
+  if (typeof gameState.player.inventory.skillResetTicket !== 'number') gameState.player.inventory.skillResetTicket = 0;
+  if (typeof gameState.player.inventory.martialBook !== 'number') gameState.player.inventory.martialBook = 0;
+  if (typeof gameState.player.inventory.magicBook !== 'number') gameState.player.inventory.magicBook = 0;
+  if (typeof gameState.player.inventory.rewardRerollTicket !== 'number') gameState.player.inventory.rewardRerollTicket = 0;
   if (typeof gameState.player.statPoints !== 'number') gameState.player.statPoints = 0;
   if (!gameState.reward) gameState.reward = { options: [], selected: null, rerolled: false };
   if (!Array.isArray(gameState.reward.options)) gameState.reward.options = [];
@@ -185,6 +208,8 @@ function ensureStateShape() {
   if (typeof gameState.magicBookPhase.baseAttemptUsed !== 'boolean') gameState.magicBookPhase.baseAttemptUsed = false;
   if (typeof gameState.magicBookPhase.extraAttempts !== 'number') gameState.magicBookPhase.extraAttempts = 0;
   if (!('lastResult' in gameState.magicBookPhase)) gameState.magicBookPhase.lastResult = null;
+  if (!gameState.shop) gameState.shop = { log: [] };
+  if (!Array.isArray(gameState.shop.log)) gameState.shop.log = [];
 }
 
 function renderStatus() {
@@ -196,6 +221,7 @@ function renderStatus() {
   document.getElementById('inv-skill-reset').textContent = String(gameState.player.inventory.skillResetTicket);
   document.getElementById('inv-martial-book').textContent = String(gameState.player.inventory.martialBook);
   document.getElementById('inv-magic-book').textContent = String(gameState.player.inventory.magicBook);
+  document.getElementById('inv-reroll-ticket').textContent = String(gameState.player.inventory.rewardRerollTicket);
   document.getElementById('enemy-name').textContent = gameState.enemy.name;
   document.getElementById('enemy-hp').textContent = `${gameState.enemy.hp}/${gameState.enemy.maxHp}`;
   document.getElementById('enemy-state').textContent = gameState.enemy.state.join(', ') || '없음';
@@ -310,7 +336,40 @@ function renderMagicBookPanel() {
   spellListElement.textContent = gameState.player.spells.length > 0 ? gameState.player.spells.join(', ') : '없음';
   const baseAttempt = gameState.magicBookPhase.baseAttemptUsed ? '사용함' : '미사용';
   const lastResult = gameState.magicBookPhase.lastResult || '아직 시도 기록이 없습니다.';
-  magicBookStatusElement.textContent = `기본 시도: ${baseAttempt} / 추가 시도: ${gameState.magicBookPhase.extraAttempts}회 / 보유 코인: ${gameState.player.coin} / 최근 결과: ${lastResult}`;
+  const noBookGuide = gameState.player.inventory.magicBook < 1 ? '보유 마법서가 없습니다. 완료를 눌러 상점으로 이동하세요. / ' : '';
+  magicBookStatusElement.textContent = `${noBookGuide}기본 시도: ${baseAttempt} / 추가 시도: ${gameState.magicBookPhase.extraAttempts}회 / 보유 코인: ${gameState.player.coin} / 최근 결과: ${lastResult}`;
+}
+
+function renderShopPanel() {
+  if (gameState.phase !== 'IMAGINATION_SHOP') {
+    shopPanel.hidden = true;
+    shopBuyOptionsElement.innerHTML = '';
+    shopSellOptionsElement.innerHTML = '';
+    return;
+  }
+
+  shopPanel.hidden = false;
+  shopCoinElement.textContent = String(gameState.player.coin);
+  shopBuyOptionsElement.innerHTML = '';
+  shopSellOptionsElement.innerHTML = '';
+
+  Object.entries(SHOP_ITEMS.buy).forEach(([type, item]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'shop-button';
+    button.innerHTML = `<strong>${item.label}</strong><span>가격: 코인 ${item.price}</span><span>${item.description}</span>`;
+    button.addEventListener('click', () => buyShopItem(type));
+    shopBuyOptionsElement.appendChild(button);
+  });
+
+  Object.entries(SHOP_ITEMS.sell).forEach(([type, item]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'shop-button';
+    button.innerHTML = `<strong>${item.label}</strong><span>판매가: 코인 ${item.price}</span><span>${item.description}</span>`;
+    button.addEventListener('click', () => sellShopItem(type));
+    shopSellOptionsElement.appendChild(button);
+  });
 }
 
 function renderSkillPanel() {
@@ -362,6 +421,7 @@ function enterSkillPhase() {
     renderSkillPanel();
     renderStatus();
     renderMagicBookPanel();
+    renderShopPanel();
     renderMap();
     return;
   }
@@ -397,6 +457,7 @@ function selectSkill(index) {
   renderSkillPanel();
   renderStatus();
   renderMagicBookPanel();
+  renderShopPanel();
   renderMap();
 }
 
@@ -407,6 +468,7 @@ function finishMagicBookPhase() {
   addLog('다음 단계: 심상세계 5단계 - 상점 이용');
   renderStatus();
   renderMagicBookPanel();
+  renderShopPanel();
   renderMap();
 }
 
@@ -441,6 +503,7 @@ function clearFloor() {
   renderStatPanel();
   renderSkillPanel();
   renderMagicBookPanel();
+  renderShopPanel();
   renderMap();
 }
 
@@ -455,15 +518,21 @@ function rerollRewards() {
     addLog('이미 리롤했습니다.');
     return;
   }
-  if (gameState.player.coin < 1) {
+  if (gameState.player.coin < 1 && gameState.player.inventory.rewardRerollTicket < 1) {
     addLog('코인이 부족해 리롤할 수 없습니다.');
     return;
   }
 
-  gameState.player.coin -= 1;
+  if (gameState.player.coin < 1 && gameState.player.inventory.rewardRerollTicket > 0) {
+    gameState.player.inventory.rewardRerollTicket -= 1;
+    addLog('보상 리롤권을 사용했습니다.');
+  } else {
+    gameState.player.coin -= 1;
+    addLog('코인 1개를 사용했습니다.');
+  }
   gameState.reward.options = [weightedPick(REWARD_TABLE), weightedPick(REWARD_TABLE)];
   gameState.reward.rerolled = true;
-  addLog('코인 1개를 사용해 보상 후보를 다시 생성했습니다.');
+  addLog('보상 후보를 다시 생성했습니다.');
   renderStatus();
   renderRewardOptions();
 }
@@ -727,6 +796,7 @@ function selectReward(index) {
   renderStatPanel();
   renderSkillPanel();
   renderMagicBookPanel();
+  renderShopPanel();
   renderMap();
 }
 
@@ -777,6 +847,7 @@ function applyRecommendedStats() {
 
 function tryMagicBookAttempt(isExtra) {
   if (gameState.phase !== 'IMAGINATION_MAGIC_BOOK') return;
+  if (isExtra && !gameState.magicBookPhase.baseAttemptUsed) return addLog('기본 시도를 먼저 사용해야 합니다.');
   if (gameState.player.inventory.magicBook < 1) return addLog('보유 마법서가 없습니다.');
   if (!isExtra && gameState.magicBookPhase.baseAttemptUsed) return addLog('기본 습득 시도는 이미 사용했습니다.');
 
@@ -807,6 +878,74 @@ function tryMagicBookAttempt(isExtra) {
   }
   renderStatus();
   renderMagicBookPanel();
+}
+
+function getShopItemCount(type) {
+  const inventory = gameState.player.inventory;
+  if (type === 'SELL_MAGIC_BOOK') return inventory.magicBook;
+  if (type === 'SELL_MARTIAL_BOOK') return inventory.martialBook;
+  if (type === 'SELL_SKILL_RESET_TICKET') return inventory.skillResetTicket;
+  return 0;
+}
+
+function addShopLog(message) {
+  gameState.shop.log.unshift(message);
+  if (gameState.shop.log.length > 20) gameState.shop.log.pop();
+  addLog(message);
+}
+
+function buyShopItem(type) {
+  ensureStateShape();
+  if (gameState.phase !== 'IMAGINATION_SHOP') return;
+  const item = SHOP_ITEMS.buy[type];
+  if (!item) return;
+
+  if (gameState.player.coin < item.price) {
+    addShopLog('코인이 부족합니다.');
+    return;
+  }
+
+  gameState.player.coin -= item.price;
+  if (type === 'REWARD_REROLL') gameState.player.inventory.rewardRerollTicket += 1;
+  if (type === 'BASIC_MAGIC_BOOK') gameState.player.inventory.magicBook += 1;
+  if (type === 'MARTIAL_BOOK') gameState.player.inventory.martialBook += 1;
+  if (type === 'SKILL_RESET_TICKET') gameState.player.inventory.skillResetTicket += 1;
+
+  addShopLog(`구매 완료: ${item.label}`);
+  renderStatus();
+  renderShopPanel();
+}
+
+function sellShopItem(type) {
+  ensureStateShape();
+  if (gameState.phase !== 'IMAGINATION_SHOP') return;
+  const item = SHOP_ITEMS.sell[type];
+  if (!item) return;
+
+  if (getShopItemCount(type) < 1) {
+    addShopLog('판매할 아이템이 없습니다.');
+    return;
+  }
+
+  if (type === 'SELL_MAGIC_BOOK') gameState.player.inventory.magicBook -= 1;
+  if (type === 'SELL_MARTIAL_BOOK') gameState.player.inventory.martialBook -= 1;
+  if (type === 'SELL_SKILL_RESET_TICKET') gameState.player.inventory.skillResetTicket -= 1;
+  gameState.player.coin += item.price;
+
+  addShopLog(`판매 완료: ${item.label}`);
+  renderStatus();
+  renderShopPanel();
+}
+
+function finishShopPhase() {
+  ensureStateShape();
+  if (gameState.phase !== 'IMAGINATION_SHOP') return;
+  gameState.phase = 'NEXT_FLOOR_CONFIRM';
+  addShopLog('상점 이용을 마쳤습니다.');
+  addShopLog('다음 단계: 다음 층 진입 여부 선택');
+  renderStatus();
+  renderShopPanel();
+  renderMap();
 }
 
 function decreaseStat(statName) {
@@ -840,6 +979,7 @@ function finishStatDistribution() {
     renderRewardOptions();
     renderSkillPanel();
     renderMagicBookPanel();
+    renderShopPanel();
     renderMap();
     return;
   }
@@ -855,6 +995,7 @@ function finishStatDistribution() {
   renderRewardOptions();
   renderSkillPanel();
   renderMagicBookPanel();
+  renderShopPanel();
   renderMap();
 }
 
@@ -912,6 +1053,7 @@ function loadGame() {
     renderStatPanel();
     renderSkillPanel();
     renderMagicBookPanel();
+    renderShopPanel();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
@@ -931,6 +1073,7 @@ function resetGame() {
   renderStatPanel();
   renderSkillPanel();
   renderMagicBookPanel();
+  renderShopPanel();
 }
 
 
@@ -947,6 +1090,7 @@ function bindActions() {
   tryMagicBookButton.addEventListener('click', () => tryMagicBookAttempt(false));
   extraMagicBookButton.addEventListener('click', () => tryMagicBookAttempt(true));
   finishMagicBookButton.addEventListener('click', finishMagicBookPhase);
+  finishShopButton.addEventListener('click', finishShopPhase);
 }
 
 function init() {

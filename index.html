@@ -15,7 +15,7 @@
           <p>HP <strong id="player-hp">21/21</strong></p>
           <p>MP <strong id="player-mp">5/5</strong></p>
           <p>코인 <strong id="player-coin">0</strong> / 레벨 <strong id="player-level">1</strong></p>
-          <p>인벤: 초기화권 <strong id="inv-skill-reset">0</strong> / 무공서 <strong id="inv-martial-book">0</strong> / 마법서 <strong id="inv-magic-book">0</strong></p>
+          <p>인벤: 초기화권 <strong id="inv-skill-reset">0</strong> / 무공서 <strong id="inv-martial-book">0</strong> / 마법서 <strong id="inv-magic-book">0</strong> / 리롤권 <strong id="inv-reroll-ticket">0</strong></p>
           <p>층 <strong id="game-floor">1</strong></p>
           <p>턴 <strong id="game-turn">1</strong></p>
           <p>현재 단계 <strong id="game-phase">INITIAL_STAT</strong></p>
@@ -83,6 +83,19 @@
         <button type="button" id="try-magic-book-button">마법서 습득 시도</button>
         <button type="button" id="extra-magic-book-button">코인 1개로 추가 시도</button>
         <button type="button" id="finish-magic-book-button">마법서 단계 완료</button>
+      </section>
+
+      <section class="shop-panel" id="shop-panel" hidden>
+        <h2>심상세계 5단계: 상점 이용</h2>
+        <p>보유 코인: <strong id="shop-coin">0</strong></p>
+
+        <h3>구매</h3>
+        <div id="shop-buy-options"></div>
+
+        <h3>판매</h3>
+        <div id="shop-sell-options"></div>
+
+        <button type="button" id="finish-shop-button">상점 이용 완료</button>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">
