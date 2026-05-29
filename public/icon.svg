@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">ManTRPG 아이콘</title>
+  <desc id="desc">어두운 원형 배경 위에 7x7 격자와 주사위 점을 표현한 아이콘</desc>
+  <rect width="512" height="512" rx="112" fill="#111827" />
+  <circle cx="256" cy="256" r="184" fill="#1f2937" stroke="#facc15" stroke-width="18" />
+  <g stroke="#38bdf8" stroke-width="10" stroke-linecap="round" opacity="0.95">
+    <path d="M166 154v204" />
+    <path d="M196 154v204" />
+    <path d="M226 154v204" />
+    <path d="M256 154v204" />
+    <path d="M286 154v204" />
+    <path d="M316 154v204" />
+    <path d="M346 154v204" />
+    <path d="M154 166h204" />
+    <path d="M154 196h204" />
+    <path d="M154 226h204" />
+    <path d="M154 256h204" />
+    <path d="M154 286h204" />
+    <path d="M154 316h204" />
+    <path d="M154 346h204" />
+  </g>
+  <rect x="184" y="184" width="144" height="144" rx="28" fill="#f8fafc" stroke="#0f172a" stroke-width="12" />
+  <circle cx="222" cy="222" r="13" fill="#111827" />
+  <circle cx="290" cy="222" r="13" fill="#111827" />
+  <circle cx="256" cy="256" r="13" fill="#111827" />
+  <circle cx="222" cy="290" r="13" fill="#111827" />
+  <circle cx="290" cy="290" r="13" fill="#111827" />
+</svg>
