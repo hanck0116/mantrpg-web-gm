@@ -1,5 +1,5 @@
 // 파일 수정 후 이 캐시 이름을 변경하면 서비스 워커가 최신 파일을 다시 캐시합니다.
-const CACHE_NAME = 'mantrpg-web-gm-v2';
+const CACHE_NAME = 'mantrpg-web-gm-v3';
 const CACHE_FILES = [
   './',
   './index.html',

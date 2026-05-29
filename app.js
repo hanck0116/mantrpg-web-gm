@@ -1,4 +1,5 @@
 const APP_VERSION = "0.1.0";
+const SAVE_VERSION = "0.1.0";
 const MAP_SIZE = 7;
 const SAVE_KEY = 'mantrpg-web-gm-save';
 
@@ -85,6 +86,7 @@ function createEnemyForFloor(floor) {
 function createInitialGameState() {
   const player = createInitialPlayer();
   const initialState = {
+    saveVersion: SAVE_VERSION,
     phase: 'INITIAL_STAT',
     floor: 1,
     turn: 1,
@@ -221,6 +223,7 @@ function hasValidMapTiles(tiles) {
 }
 
 function ensureStateShape() {
+  if (!gameState.saveVersion) gameState.saveVersion = 'legacy';
   if (!gameState.player) gameState.player = createInitialPlayer();
   if (!gameState.enemy) gameState.enemy = createEnemyForFloor(gameState.floor || 1);
   if (!Array.isArray(gameState.player.state)) gameState.player.state = [];
@@ -253,6 +256,7 @@ function ensureStateShape() {
   if (!Array.isArray(gameState.shop.log)) gameState.shop.log = [];
   if (!gameState.nextFloorConfirm) gameState.nextFloorConfirm = { ready: false };
   if (typeof gameState.nextFloorConfirm.ready !== 'boolean') gameState.nextFloorConfirm.ready = false;
+  gameState.saveVersion = SAVE_VERSION;
 }
 
 function renderStatus() {
@@ -1392,8 +1396,10 @@ function handleAction(action) {
 }
 
 function saveGame() {
+  ensureStateShape();
+  gameState.saveVersion = SAVE_VERSION;
   localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-  addLog('저장 완료: 현재 상태를 로컬에 저장했습니다.');
+  addLog(`저장 완료: 현재 상태를 로컬에 저장했습니다. 버전 ${SAVE_VERSION}`);
 }
 
 function loadGame() {
@@ -1421,6 +1427,7 @@ function deleteSave() {
 
 function exportSave() {
   ensureStateShape();
+  gameState.saveVersion = SAVE_VERSION;
   const saveData = JSON.stringify(gameState, null, 2);
   const blob = new Blob([saveData], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1457,12 +1464,17 @@ function importSaveFromFile(event) {
         return;
       }
 
+      const importedSaveVersion = imported.saveVersion;
       hideBattleOptionPanel();
       gameState = imported;
       ensureStateShape();
       localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
       renderAll();
-      addLog('저장 데이터를 가져왔습니다.');
+      if (!importedSaveVersion) {
+        addLog('이전 형식의 저장 데이터를 현재 버전에 맞게 보정했습니다.');
+      } else {
+        addLog(`저장 데이터를 가져왔습니다. 저장 버전: ${importedSaveVersion}`);
+      }
     } catch (error) {
       addLog('가져오기 실패: 저장 파일이 올바르지 않습니다.');
     } finally {
@@ -1512,6 +1524,15 @@ function bindActions() {
 
 function init() {
   bindActions();
+  if (localStorage.getItem(SAVE_KEY)) {
+    gameState = createInitialGameState();
+    logElement.innerHTML = '';
+    addLog('저장된 게임이 있습니다. 이어서 하려면 불러오기를 누르세요.');
+    addLog('새로 시작하려면 새 게임을 누르세요.');
+    renderAll();
+    return;
+  }
+
   resetGame();
 }
 
