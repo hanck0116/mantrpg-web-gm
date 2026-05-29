@@ -84,6 +84,15 @@
 - 캐시 갱신 안내
 - 앱 버전 0.1.1
 
+## Phase 11: Release Candidate Cleanup
+
+- ENABLE_TEST_MODE 설정 추가
+- 테스트 모드 배포 기본 OFF
+- FINAL_CHECKLIST.md 추가
+- RELEASE_NOTES.md 추가
+- DEPLOY.md 문구 보완
+- service worker v7
+
 ## 다음 개선 예정
 
 - 전투 밸런스 조정

@@ -2,6 +2,7 @@ const APP_VERSION = "0.1.1";
 const SAVE_VERSION = "0.1.0";
 const MAP_SIZE = 7;
 const SAVE_KEY = 'mantrpg-web-gm-save';
+const ENABLE_TEST_MODE = false;
 
 const REWARD_TABLE = [
   { type: 'SKILL_RESET_TICKET', label: '스킬 초기화권', weight: 5 },
@@ -291,7 +292,23 @@ function closeTestMode() {
   if (toggleTestModeButton) toggleTestModeButton.textContent = '테스트 모드';
 }
 
+function applyTestModeVisibility() {
+  if (!toggleTestModeButton || !testPanel) return;
+
+  toggleTestModeButton.hidden = !ENABLE_TEST_MODE;
+  if (!ENABLE_TEST_MODE) {
+    closeTestMode();
+    testPanel.hidden = true;
+  }
+}
+
 function toggleTestMode() {
+  if (!ENABLE_TEST_MODE) {
+    closeTestMode();
+    addLog('테스트 모드는 현재 배포 설정에서 비활성화되어 있습니다.');
+    return;
+  }
+
   isTestModeOpen = !isTestModeOpen;
   testPanel.hidden = !isTestModeOpen;
   isTestModeEnabled = isTestModeOpen;
@@ -1671,6 +1688,7 @@ function bindActions() {
 
 function init() {
   bindActions();
+  applyTestModeVisibility();
   if (localStorage.getItem(SAVE_KEY)) {
     gameState = createInitialGameState();
     logElement.innerHTML = '';

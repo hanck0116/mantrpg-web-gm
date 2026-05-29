@@ -18,9 +18,10 @@
 5. hanck0116/mantrpg-web-gm 선택
 6. Framework preset은 None 또는 Static site 선택
 7. Build command는 비워둔다
-8. Build output directory는 / 또는 비워둔다
-9. Deploy 클릭
-10. 배포 주소로 접속해 모바일에서 확인한다
+8. Output directory는 비워두거나 "."을 사용한다
+9. Workers, Functions, 외부 DB는 연결하지 않는다
+10. Deploy 클릭
+11. 배포 주소로 접속해 모바일에서 확인한다
 
 ## GitHub Pages 배포 방법
 
@@ -28,9 +29,17 @@
 2. Pages 메뉴 선택
 3. Source를 Deploy from a branch로 선택
 4. Branch는 main 선택
-5. Folder는 /root 선택
+5. Folder는 / (root) 선택
 6. Save
 7. 생성된 Pages 주소로 접속한다
+
+## 테스트 모드 배포 설정
+
+- app.js의 ENABLE_TEST_MODE 기본값은 false다.
+- 실제 배포 시에는 false를 유지한다.
+- 개발 중 기능 점검이 필요할 때만 true로 바꾼다.
+- false 상태에서는 테스트 모드 버튼이 화면에 표시되지 않는다.
+- 테스트 모드는 저장 데이터에 포함되지 않는다.
 
 ## 배포 후 확인
 
