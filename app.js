@@ -1,4 +1,4 @@
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.1.1";
 const SAVE_VERSION = "0.1.0";
 const MAP_SIZE = 7;
 const SAVE_KEY = 'mantrpg-web-gm-save';
@@ -107,6 +107,7 @@ let gameState = createInitialGameState();
 let isStatusDetailOpen = false;
 let isTestModeOpen = false;
 let isTestModeEnabled = false;
+let isReleaseCheckOpen = false;
 
 const mapElement = document.getElementById('tactical-map');
 const logElement = document.getElementById('combat-log');
@@ -154,7 +155,9 @@ const toggleStatusDetailButton = document.getElementById('toggle-status-detail-b
 const statusDetailElement = document.getElementById('status-detail');
 const phaseGuideElement = document.getElementById('phase-guide');
 const toggleTestModeButton = document.getElementById('toggle-test-mode-button');
+const toggleReleaseCheckButton = document.getElementById('toggle-release-check-button');
 const testPanel = document.getElementById('test-panel');
+const releaseCheckPanel = document.getElementById('release-check-panel');
 const testGiveCoinButton = document.getElementById('test-give-coin-button');
 const testGiveBooksButton = document.getElementById('test-give-books-button');
 const testGiveSkillsButton = document.getElementById('test-give-skills-button');
@@ -281,12 +284,26 @@ function toggleStatusDetail() {
   toggleStatusDetailButton.setAttribute('aria-expanded', String(isStatusDetailOpen));
 }
 
+function closeTestMode() {
+  isTestModeOpen = false;
+  isTestModeEnabled = false;
+  if (testPanel) testPanel.hidden = true;
+  if (toggleTestModeButton) toggleTestModeButton.textContent = '테스트 모드';
+}
+
 function toggleTestMode() {
   isTestModeOpen = !isTestModeOpen;
   testPanel.hidden = !isTestModeOpen;
   isTestModeEnabled = isTestModeOpen;
   toggleTestModeButton.textContent = isTestModeOpen ? '테스트 모드 닫기' : '테스트 모드';
   addLog(isTestModeOpen ? '테스트 모드를 열었습니다. 배포 전 점검용입니다.' : '테스트 모드를 닫았습니다.');
+}
+
+function toggleReleaseCheckPanel() {
+  isReleaseCheckOpen = !isReleaseCheckOpen;
+  releaseCheckPanel.hidden = !isReleaseCheckOpen;
+  toggleReleaseCheckButton.textContent = isReleaseCheckOpen ? '배포 점검 닫기' : '배포 점검';
+  addLog(isReleaseCheckOpen ? '배포 전 점검표를 열었습니다.' : '배포 전 점검표를 닫았습니다.');
 }
 
 function canUseTestMode() {
@@ -1393,6 +1410,7 @@ function finishShopPhase() {
 
 function enterNextFloor() {
   ensureStateShape();
+  closeTestMode();
   hideBattleOptionPanel();
   if (gameState.phase !== 'NEXT_FLOOR_CONFIRM') return;
 
@@ -1517,6 +1535,7 @@ function saveGame() {
 }
 
 function loadGame() {
+  closeTestMode();
   hideBattleOptionPanel();
   const saved = localStorage.getItem(SAVE_KEY);
   if (!saved) {
@@ -1579,6 +1598,7 @@ function importSaveFromFile(event) {
       }
 
       const importedSaveVersion = imported.saveVersion;
+      closeTestMode();
       hideBattleOptionPanel();
       gameState = imported;
       ensureStateShape();
@@ -1604,10 +1624,10 @@ function importSaveFromFile(event) {
 
 function resetGame() {
   hideBattleOptionPanel();
-  isTestModeOpen = false;
-  isTestModeEnabled = false;
-  testPanel.hidden = true;
-  toggleTestModeButton.textContent = '테스트 모드';
+  closeTestMode();
+  isReleaseCheckOpen = false;
+  releaseCheckPanel.hidden = true;
+  toggleReleaseCheckButton.textContent = '배포 점검';
   gameState = createInitialGameState();
   localStorage.removeItem(SAVE_KEY);
   logElement.innerHTML = '';
@@ -1640,6 +1660,7 @@ function bindActions() {
   closeBattleOptionButton.addEventListener('click', hideBattleOptionPanel);
   toggleStatusDetailButton.addEventListener('click', toggleStatusDetail);
   toggleTestModeButton.addEventListener('click', toggleTestMode);
+  toggleReleaseCheckButton.addEventListener('click', toggleReleaseCheckPanel);
   testGiveCoinButton.addEventListener('click', testGiveCoin);
   testGiveBooksButton.addEventListener('click', testGiveBooks);
   testGiveSkillsButton.addEventListener('click', testGiveSkills);

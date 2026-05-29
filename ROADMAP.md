@@ -75,6 +75,15 @@
 - 배포 전 점검 보조
 - 저장 데이터와 분리된 UI 전용 테스트 상태 유지
 
+## Phase 10: Deployment Preparation
+
+- DEPLOY.md 추가
+- Cloudflare Pages 배포 안내
+- GitHub Pages 배포 안내
+- 배포 전 점검 패널
+- 캐시 갱신 안내
+- 앱 버전 0.1.1
+
 ## 다음 개선 예정
 
 - 전투 밸런스 조정
