@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#111827" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ManTRPG" />
     <title>ManTRPG Web GM</title>
+    <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -118,5 +121,19 @@
     </main>
 
     <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('./service-worker.js')
+            .then(() => {
+              console.log('ManTRPG service worker registered.');
+            })
+            .catch(() => {
+              console.log('ManTRPG service worker registration failed.');
+            });
+        });
+      }
+    </script>
   </body>
 </html>

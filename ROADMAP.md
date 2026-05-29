@@ -39,9 +39,16 @@
 - imagination world phase 구현
 - shop 구현
 
-## Phase 6: PWA
+## Phase 6: PWA (완료)
 
-- manifest.json 추가
-- service-worker.js 추가
-- offline support 추가
-- mobile install support 추가
+- manifest.json 추가 완료
+- service-worker.js 추가 완료
+- offline support 추가 완료
+- mobile install support 추가 완료
+
+## 다음 개선 예정
+
+- 전투 밸런스 조정
+- 스킬/마법 밸런스 조정
+- UI 정리
+- 테스트 체크리스트 작성
