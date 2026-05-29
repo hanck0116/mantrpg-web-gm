@@ -1,0 +1,17 @@
+{
+  "name": "ManRPG PWA AI",
+  "short_name": "ManRPG",
+  "description": "ManRPG v18 FINAL 기반 모바일 우선 PWA 턴제 TRPG",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111421",
+  "theme_color": "#141827",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

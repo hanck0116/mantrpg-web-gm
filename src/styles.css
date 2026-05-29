@@ -1,0 +1,171 @@
+:root {
+  color: #f5f7fb;
+  background: #111421;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #24304d 0, #111421 44rem);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(100%, 42rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.hero,
+.panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  background: rgba(17, 20, 33, 0.82);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.24);
+}
+
+.hero {
+  padding: 1.25rem;
+}
+
+.hero h1,
+.panel h2,
+.hero p {
+  margin: 0;
+}
+
+.hero h1 {
+  margin-top: 0.35rem;
+  font-size: clamp(2rem, 11vw, 3.3rem);
+  line-height: 0.95;
+}
+
+.hero p:last-child {
+  margin-top: 0.75rem;
+  color: #c8d0e3;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  color: #8fd1ff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.panel h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.status-grid span,
+.status-grid strong {
+  min-height: 2.35rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.status-grid span {
+  color: #aeb9d2;
+}
+
+.status-grid strong {
+  text-align: right;
+}
+
+.log-panel ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #d9e2f7;
+  line-height: 1.5;
+}
+
+.ai-panel p,
+.helper-text {
+  margin: 0;
+  color: #bcc6dd;
+  line-height: 1.5;
+}
+
+.ai-panel button {
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.75rem;
+  border: 0;
+  border-radius: 0.9rem;
+  color: #65708a;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.map-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.55rem;
+  color: #7f8ba6;
+  background: rgba(255, 255, 255, 0.055);
+  font-weight: 900;
+}
+
+.map-cell.player {
+  color: #07131a;
+  background: #8fd1ff;
+}
+
+.map-cell.enemy {
+  color: #210b0b;
+  background: #ff8f8f;
+}
+
+.helper-text {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+@media (min-width: 680px) {
+  .app-shell {
+    padding: 1.5rem;
+  }
+
+  .status-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
