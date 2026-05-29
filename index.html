@@ -13,30 +13,32 @@
   <body>
     <main class="app-shell">
       <header class="status-panel" aria-label="상단 상태창">
-        <div class="status-card">
-          <h2>플레이어</h2>
+        <div class="status-summary">
           <p>HP <strong id="player-hp">21/21</strong></p>
           <p>MP <strong id="player-mp">5/5</strong></p>
-          <p>코인 <strong id="player-coin">0</strong> / 레벨 <strong id="player-level">1</strong></p>
-          <p>인벤: 초기화권 <strong id="inv-skill-reset">0</strong> / 무공서 <strong id="inv-martial-book">0</strong> / 마법서 <strong id="inv-magic-book">0</strong> / 리롤권 <strong id="inv-reroll-ticket">0</strong></p>
+          <p>코인 <strong id="player-coin">0</strong></p>
           <p>층 <strong id="game-floor">1</strong></p>
           <p>턴 <strong id="game-turn">1</strong></p>
+        </div>
+
+        <button type="button" id="toggle-status-detail-button">상세 정보 보기</button>
+
+        <div class="status-detail" id="status-detail" hidden>
+          <p>레벨 <strong id="player-level">1</strong></p>
           <p>현재 단계 <strong id="game-phase">INITIAL_STAT</strong></p>
           <p>스탯 포인트 <strong id="player-stat-points">48</strong></p>
-          <p>보유 스킬 <strong id="player-skill-count">0</strong></p>
-          <p>보유 마법 <strong id="player-spell-count">0</strong></p>
+          <p>인벤: 초기화권 <strong id="inv-skill-reset">0</strong> / 무공서 <strong id="inv-martial-book">0</strong> / 마법서 <strong id="inv-magic-book">0</strong> / 리롤권 <strong id="inv-reroll-ticket">0</strong></p>
+          <p>보유 스킬 <strong id="player-skill-count">0</strong> / 보유 마법 <strong id="player-spell-count">0</strong></p>
+          <p>적 이름 <strong id="enemy-name">1층의 그림자 적</strong></p>
+          <p>적 HP <strong id="enemy-hp">20/20</strong></p>
+          <p>적 상태 <strong id="enemy-state">대기</strong></p>
           <p class="app-version">버전 <strong id="app-version">0.1.0</strong></p>
-        </div>
-        <div class="status-card">
-          <h2>적 (1명)</h2>
-          <p>이름 <strong id="enemy-name">1층의 그림자 적</strong></p>
-          <p>HP <strong id="enemy-hp">20/20</strong></p>
-          <p>상태 <strong id="enemy-state">대기</strong></p>
         </div>
       </header>
 
       <section class="log-panel" aria-label="중앙 전투 로그">
         <h1>전투 로그</h1>
+        <p id="phase-guide" class="phase-guide">현재 할 일을 표시합니다.</p>
         <ul id="combat-log" class="log-list"></ul>
       </section>
 
