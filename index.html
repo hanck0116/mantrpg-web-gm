@@ -32,7 +32,7 @@
           <p>적 이름 <strong id="enemy-name">1층의 그림자 적</strong></p>
           <p>적 HP <strong id="enemy-hp">20/20</strong></p>
           <p>적 상태 <strong id="enemy-state">대기</strong></p>
-          <p class="app-version">버전 <strong id="app-version">0.1.0</strong></p>
+          <p class="app-version">버전 <strong id="app-version">0.1.1</strong></p>
         </div>
       </header>
 
@@ -51,6 +51,7 @@
         <input type="file" id="import-save-input" accept="application/json" hidden />
         <button type="button" id="import-save-button">저장 가져오기</button>
         <button type="button" id="toggle-test-mode-button">테스트 모드</button>
+        <button type="button" id="toggle-release-check-button">배포 점검</button>
       </section>
 
       <section class="action-panel" aria-label="하단 행동 버튼">
@@ -131,6 +132,20 @@
         <button type="button" id="test-give-spells-button">마법 전체 지급</button>
         <button type="button" id="test-enemy-low-hp-button">적 HP 1로 만들기</button>
         <button type="button" id="test-clear-floor-button">현재 층 클리어</button>
+      </section>
+
+      <section class="release-check-panel" id="release-check-panel" hidden>
+        <h2>배포 전 점검</h2>
+        <p>아래 항목을 실제 모바일에서 확인하세요.</p>
+        <ul class="release-check-list">
+          <li>초기 스탯 분배가 작동하는지 확인</li>
+          <li>전투가 시작되는지 확인</li>
+          <li>적 처치 후 보상 선택으로 넘어가는지 확인</li>
+          <li>심상세계 단계가 순서대로 진행되는지 확인</li>
+          <li>상점 이후 다음 층 진입이 되는지 확인</li>
+          <li>저장/불러오기/내보내기/가져오기가 작동하는지 확인</li>
+          <li>PWA 홈 화면 추가가 가능한지 확인</li>
+        </ul>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">

@@ -46,7 +46,8 @@ body {
 .magic-book-panel,
 .shop-panel,
 .next-floor-panel,
-.test-panel {
+.test-panel,
+.release-check-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -117,7 +118,8 @@ body {
 .magic-book-panel h2,
 .shop-panel h2,
 .next-floor-panel h2,
-.test-panel h2 {
+.test-panel h2,
+.release-check-panel h2 {
   font-size: 0.95rem;
   margin: 0 0 0.4rem;
 }
@@ -180,7 +182,8 @@ body {
 .magic-book-panel,
 .shop-panel,
 .next-floor-panel,
-.test-panel {
+.test-panel,
+.release-check-panel {
   display: grid;
   gap: 0.45rem;
 }
@@ -193,8 +196,23 @@ body {
 .shop-panel p,
 .next-floor-panel p,
 .test-panel p,
+.release-check-panel p,
 .shop-panel h3 {
   margin: 0;
+}
+
+
+.release-check-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.release-check-list li {
+  padding-left: 0.1rem;
 }
 
 #reward-options {
