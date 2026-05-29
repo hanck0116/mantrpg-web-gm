@@ -135,6 +135,10 @@ const finishShopButton = document.getElementById('finish-shop-button');
 const nextFloorPanel = document.getElementById('next-floor-panel');
 const nextFloorDescElement = document.getElementById('next-floor-desc');
 const enterNextFloorButton = document.getElementById('enter-next-floor-button');
+const battleOptionPanel = document.getElementById('battle-option-panel');
+const battleOptionTitleElement = document.getElementById('battle-option-title');
+const battleOptionListElement = document.getElementById('battle-option-list');
+const closeBattleOptionButton = document.getElementById('close-battle-option-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -205,6 +209,16 @@ function createInitialPlayer() {
 }
 
 function ensureStateShape() {
+  if (!gameState.player) gameState.player = createInitialPlayer();
+  if (!gameState.enemy) gameState.enemy = createEnemyForFloor(gameState.floor || 1);
+  if (!Array.isArray(gameState.player.state)) gameState.player.state = [];
+  if (!Array.isArray(gameState.enemy.state)) gameState.enemy.state = [];
+  if (!gameState.map || gameState.map.size !== MAP_SIZE || !Array.isArray(gameState.map.tiles)) gameState.map = createInitialMap();
+  for (let y = 0; y < gameState.map.size; y += 1) {
+    for (let x = 0; x < gameState.map.size; x += 1) {
+      gameState.map.tiles[y][x] = { ...createBaseTile(x, y), ...gameState.map.tiles[y][x] };
+    }
+  }
   if (!gameState.player.inventory) gameState.player.inventory = createInitialInventory();
   if (typeof gameState.player.inventory.skillResetTicket !== 'number') gameState.player.inventory.skillResetTicket = 0;
   if (typeof gameState.player.inventory.martialBook !== 'number') gameState.player.inventory.martialBook = 0;
@@ -231,6 +245,7 @@ function ensureStateShape() {
 
 function renderStatus() {
   ensureStateShape();
+  if (gameState.phase !== 'BATTLE') hideBattleOptionPanel();
   document.getElementById('player-hp').textContent = `${gameState.player.hp}/${gameState.player.maxHp}`;
   document.getElementById('player-mp').textContent = `${gameState.player.mp}/${gameState.player.maxMp}`;
   document.getElementById('player-coin').textContent = String(gameState.player.coin);
@@ -257,6 +272,8 @@ function getTileLabel(tile, x, y) {
   if (tile.fire) return '불';
   if (tile.brand) return '낙';
   if (tile.terrain === 'broken') return '파';
+  if (tile.magicEffect === 'grease') return '기름';
+  if (tile.magicEffect) return '마';
   return '';
 }
 
@@ -273,6 +290,7 @@ function renderMap() {
       if (tileState.fire) tile.classList.add('fire');
       if (tileState.brand) tile.classList.add('brand');
       if (tileState.incomingAttack) tile.classList.add('incoming');
+      if (tileState.magicEffect && !tileState.fire) tile.classList.add('magic-effect');
       if (gameState.player.position.x === x && gameState.player.position.y === y) tile.classList.add('player');
       if (gameState.enemy.position.x === x && gameState.enemy.position.y === y && gameState.enemy.hp > 0) tile.classList.add('enemy');
       tile.textContent = getTileLabel(tileState, x, y);
@@ -280,6 +298,71 @@ function renderMap() {
       mapElement.appendChild(tile);
     }
   }
+}
+
+
+function hideBattleOptionPanel() {
+  battleOptionPanel.hidden = true;
+  battleOptionListElement.innerHTML = '';
+}
+
+function countDangerTiles() {
+  let dangerTiles = 0;
+  for (let y = 0; y < gameState.map.size; y += 1) {
+    for (let x = 0; x < gameState.map.size; x += 1) {
+      const tile = gameState.map.tiles[y][x];
+      if (tile.fire || tile.incomingAttack || tile.brand || tile.terrain === 'broken' || tile.magicEffect) dangerTiles += 1;
+    }
+  }
+  return dangerTiles;
+}
+
+function markIncomingAttackFromEnemy() {
+  clearIncomingAttacks();
+  const dx = gameState.player.position.x - gameState.enemy.position.x;
+  const dy = gameState.player.position.y - gameState.enemy.position.y;
+  const attackTile = { x: gameState.enemy.position.x + Math.sign(dx), y: gameState.enemy.position.y + Math.sign(dy) };
+  if (attackTile.x >= 0 && attackTile.x < MAP_SIZE && attackTile.y >= 0 && attackTile.y < MAP_SIZE) {
+    gameState.map.tiles[attackTile.y][attackTile.x].incomingAttack = true;
+    return true;
+  }
+  return false;
+}
+
+function renderBattleOptionPanel(mode) {
+  ensureStateShape();
+  if (mode !== 'skill' && mode !== 'spell') return;
+  if (gameState.phase !== 'BATTLE') {
+    hideBattleOptionPanel();
+    return;
+  }
+
+  const isSkillMode = mode === 'skill';
+  const items = isSkillMode ? gameState.player.skills : gameState.player.spells;
+  battleOptionPanel.hidden = false;
+  battleOptionTitleElement.textContent = isSkillMode ? '보유 스킬 선택' : '보유 마법 선택';
+  battleOptionListElement.innerHTML = '';
+
+  if (items.length < 1) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.textContent = '사용 가능한 항목이 없습니다.';
+    battleOptionListElement.appendChild(emptyMessage);
+    return;
+  }
+
+  items.forEach((item, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'battle-option-button';
+    if (isSkillMode) {
+      button.innerHTML = `<strong>${item.label}</strong><span>${item.description}</span><span>MP ${item.mpCost} / 기준 ${item.stat}</span>`;
+      button.addEventListener('click', () => useSkill(index));
+    } else {
+      button.textContent = item;
+      button.addEventListener('click', () => useSpell(item));
+    }
+    battleOptionListElement.appendChild(button);
+  });
 }
 
 function renderRewardOptions() {
@@ -515,6 +598,7 @@ function describeTile(x, y) {
 
 function clearFloor() {
   ensureStateShape();
+  hideBattleOptionPanel();
   gameState.phase = 'REWARD_SELECT';
   gameState.enemy.hp = 0;
   gameState.player.level += 5;
@@ -604,14 +688,27 @@ function findSafeAdjacentStep(from) {
 
 function enemyAttack() {
   addLog(`[적 행동] ${gameState.enemy.name}이 공격합니다.`);
-  const enemyStr = rollDice(gameState.enemy.stats.힘);
+  let enemyStrMax = gameState.enemy.stats.힘;
+  const darknessIndex = gameState.enemy.state.indexOf('암흑');
+  if (darknessIndex >= 0) {
+    enemyStrMax = Math.max(1, Math.floor(gameState.enemy.stats.힘 / 2));
+    gameState.enemy.state.splice(darknessIndex, 1);
+    addLog('암흑으로 적의 명중 능력이 약화되었습니다.');
+  }
+
+  const enemyStr = rollDice(enemyStrMax);
   const playerAgi = rollDice(gameState.player.stats.민첩);
-  addLog(`[판정] 적 힘 ${gameState.enemy.stats.힘} → 1d${gameState.enemy.stats.힘} = ${enemyStr} / 플레이어 민첩 ${gameState.player.stats.민첩} → 1d${gameState.player.stats.민첩} = ${playerAgi}`);
+  addLog(`[판정] 적 힘 ${gameState.enemy.stats.힘} → 1d${enemyStrMax} = ${enemyStr} / 플레이어 민첩 ${gameState.player.stats.민첩} → 1d${gameState.player.stats.민첩} = ${playerAgi}`);
 
   if (enemyStr > playerAgi) {
     let damage = 4;
+    const focusedGuardIndex = gameState.player.state.indexOf('집중 방어');
     const defenseIndex = gameState.player.state.indexOf('방어');
-    if (defenseIndex >= 0) {
+    if (focusedGuardIndex >= 0) {
+      damage = 1;
+      gameState.player.state.splice(focusedGuardIndex, 1);
+      addLog('집중 방어로 피해를 크게 줄였습니다.');
+    } else if (defenseIndex >= 0) {
       damage = 2;
       gameState.player.state.splice(defenseIndex, 1);
     }
@@ -623,6 +720,7 @@ function enemyAttack() {
 
   if (gameState.player.hp <= 0) {
     gameState.phase = 'GAME_OVER';
+    hideBattleOptionPanel();
     addLog('패배: 플레이어 HP가 0이 되어 게임 오버입니다.');
   }
 }
@@ -633,8 +731,18 @@ function enemyTurn() {
 
   const enemyPos = gameState.enemy.position;
   const enemyTile = gameState.map.tiles[enemyPos.y][enemyPos.x];
+  let canMove = true;
 
-  if (enemyTile.fire) {
+  const frozenIndex = gameState.enemy.state.indexOf('빙결');
+  if (frozenIndex >= 0) {
+    canMove = false;
+    gameState.enemy.state.splice(frozenIndex, 1);
+    addLog('[적 상태] 빙결로 이동하지 못합니다.');
+  }
+
+  const distanceBeforeMove = getDistance(gameState.enemy.position, gameState.player.position);
+
+  if (canMove && enemyTile.fire) {
     const safeStep = findSafeAdjacentStep(enemyPos);
     if (safeStep) {
       gameState.enemy.position = safeStep;
@@ -642,24 +750,31 @@ function enemyTurn() {
     }
   }
 
+  const slipIndex = gameState.enemy.state.indexOf('미끄러짐');
+  if (canMove && slipIndex >= 0 && getDistance(gameState.enemy.position, gameState.player.position) > 1) {
+    const slipRoll = rollDice(gameState.enemy.stats.민첩);
+    addLog(`[상태] 미끄러짐 판정: 적 민첩 ${gameState.enemy.stats.민첩} → 1d${gameState.enemy.stats.민첩} = ${slipRoll}`);
+    if (slipRoll <= 3) {
+      canMove = false;
+      addLog('[상태] 미끄러짐으로 적 이동이 실패했습니다.');
+    }
+    gameState.enemy.state.splice(slipIndex, 1);
+  }
+
   const distance = getDistance(gameState.enemy.position, gameState.player.position);
   if (distance <= 1) {
     enemyAttack();
   } else {
-    const step = findBestStepToward(gameState.enemy.position, gameState.player.position);
-    if (step) {
-      gameState.enemy.position = step;
-      addLog(`[적 행동] ${gameState.enemy.name}이 플레이어에게 접근했습니다.`);
+    if (canMove && distanceBeforeMove > 1) {
+      const step = findBestStepToward(gameState.enemy.position, gameState.player.position);
+      if (step) {
+        gameState.enemy.position = step;
+        addLog(`[적 행동] ${gameState.enemy.name}이 플레이어에게 접근했습니다.`);
+      }
     }
 
     if (getDistance(gameState.enemy.position, gameState.player.position) <= 1) {
-      const dx = gameState.player.position.x - gameState.enemy.position.x;
-      const dy = gameState.player.position.y - gameState.enemy.position.y;
-      const attackTile = { x: gameState.enemy.position.x + Math.sign(dx), y: gameState.enemy.position.y + Math.sign(dy) };
-      if (attackTile.x >= 0 && attackTile.x < MAP_SIZE && attackTile.y >= 0 && attackTile.y < MAP_SIZE) {
-        gameState.map.tiles[attackTile.y][attackTile.x].incomingAttack = true;
-        addLog('[적 행동] 다음 턴 공격이 예고되었습니다.');
-      }
+      if (markIncomingAttackFromEnemy()) addLog('[적 행동] 다음 턴 공격이 예고되었습니다.');
     }
   }
 
@@ -764,26 +879,15 @@ function handleMove() {
 
 function handleMagic() {
   if (!canBattleAction()) return;
-  clearIncomingAttacks();
-  if (gameState.player.mp < 3) {
-    addLog('MP가 부족해 파이어를 사용할 수 없습니다.');
+  if (gameState.player.spells.length < 1) {
+    hideBattleOptionPanel();
+    addLog('보유 마법이 없습니다.');
     return;
   }
+  renderBattleOptionPanel('spell');
+}
 
-  gameState.player.mp -= 3;
-  addLog('파이어를 사용했습니다. MP -3');
-  const { x, y } = gameState.enemy.position;
-  const targets = [{ x, y }, { x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 }];
-  targets.forEach((pos) => {
-    if (pos.x >= 0 && pos.x < MAP_SIZE && pos.y >= 0 && pos.y < MAP_SIZE) {
-      gameState.map.tiles[pos.y][pos.x].fire = true;
-      gameState.map.tiles[pos.y][pos.x].magicEffect = 'fire';
-    }
-  });
-
-  gameState.enemy.hp = Math.max(0, gameState.enemy.hp - 3);
-  addLog('적 주변에 불길이 번졌습니다. 적 HP -3');
-
+function resolveBattleActionAfterPlayerEffect() {
   renderStatus();
   renderMap();
   if (gameState.enemy.hp <= 0) {
@@ -792,6 +896,169 @@ function handleMagic() {
     return;
   }
   enemyTurn();
+}
+
+function useSkill(index) {
+  ensureStateShape();
+  if (gameState.phase !== 'BATTLE') return;
+  const skill = gameState.player.skills[index];
+  if (!skill) return addLog('선택한 스킬을 사용할 수 없습니다.');
+  if (gameState.player.mp < skill.mpCost) return addLog('MP가 부족해 스킬을 사용할 수 없습니다.');
+
+  const distance = getDistance(gameState.player.position, gameState.enemy.position);
+  if ((skill.type === 'POWER_STRIKE' || skill.type === 'QUICK_SLASH') && distance > 1) return addLog(`${skill.label}는 거리 1 이하에서만 사용할 수 있습니다.`);
+
+  hideBattleOptionPanel();
+  clearIncomingAttacks();
+  gameState.player.mp -= skill.mpCost;
+  addLog(`[스킬] ${skill.label}를 사용했습니다. MP -${skill.mpCost}`);
+
+  if (skill.type === 'FOCUSED_GUARD') {
+    if (!gameState.player.state.includes('집중 방어')) gameState.player.state.push('집중 방어');
+    addLog('[결과] 집중 방어 태세를 취했습니다. 다음 적 공격 피해가 1로 줄어듭니다.');
+    resolveBattleActionAfterPlayerEffect();
+    return;
+  }
+
+  if (skill.type === 'TACTICAL_OBSERVE') {
+    addLog(`[관찰] 적: ${gameState.enemy.name} / HP ${gameState.enemy.hp}/${gameState.enemy.maxHp} / 상태 ${gameState.enemy.state.join(', ') || '없음'} / 위치 (${gameState.enemy.position.x}, ${gameState.enemy.position.y})`);
+    addLog(`[관찰] 플레이어와 적 거리: ${distance}`);
+    addLog(`[관찰] 현재 위험 타일 수: ${countDangerTiles()}`);
+    if (markIncomingAttackFromEnemy()) addLog('[관찰] 다음 적 공격 예고 타일을 표시했습니다.');
+    renderStatus();
+    renderMap();
+    enemyTurn();
+    return;
+  }
+
+  const contestMap = {
+    POWER_STRIKE: { playerStat: '힘', enemyStat: '체력' },
+    QUICK_SLASH: { playerStat: '민첩', enemyStat: '민첩' },
+    MANA_BOLT: { playerStat: '지능', enemyStat: '지혜' },
+  };
+  const contest = contestMap[skill.type];
+  if (!contest) return addLog('아직 사용할 수 없는 스킬입니다.');
+
+  const playerRoll = rollDice(gameState.player.stats[contest.playerStat]);
+  const enemyRoll = rollDice(gameState.enemy.stats[contest.enemyStat]);
+  addLog(`[판정] 플레이어 ${contest.playerStat} ${gameState.player.stats[contest.playerStat]} → 1d${gameState.player.stats[contest.playerStat]} = ${playerRoll} / 적 ${contest.enemyStat} ${gameState.enemy.stats[contest.enemyStat]} → 1d${gameState.enemy.stats[contest.enemyStat]} = ${enemyRoll}`);
+
+  if (playerRoll > enemyRoll) {
+    gameState.enemy.hp = Math.max(0, gameState.enemy.hp - skill.damage);
+    addLog(`[결과] ${skill.label} 성공. 적 HP -${skill.damage}`);
+  } else {
+    addLog(`[결과] ${skill.label} 실패. 피해 없음`);
+  }
+
+  resolveBattleActionAfterPlayerEffect();
+}
+
+function pushEnemyState(stateName) {
+  if (!gameState.enemy.state.includes(stateName)) gameState.enemy.state.push(stateName);
+}
+
+function useSpell(spellName) {
+  ensureStateShape();
+  if (gameState.phase !== 'BATTLE') return;
+  if (!gameState.player.spells.includes(spellName)) return addLog('보유하지 않은 마법은 사용할 수 없습니다.');
+
+  const spellCosts = { 라이트: 1, 파이어: 3, 아이스: 3, 윈드: 2, '매직 애로우': 2, 그리스: 2, 디그: 2, 다크니스: 3 };
+  const mpCost = spellCosts[spellName];
+  if (!mpCost) return addLog('알 수 없는 마법입니다.');
+  if (gameState.player.mp < mpCost) return addLog('MP가 부족해 마법을 사용할 수 없습니다.');
+
+  hideBattleOptionPanel();
+  clearIncomingAttacks();
+  gameState.player.mp -= mpCost;
+  addLog(`[마법] ${spellName}을 사용했습니다. MP -${mpCost}`);
+
+  const enemyPos = gameState.enemy.position;
+  if (spellName === '라이트') {
+    addLog(`[마법] 적: ${gameState.enemy.name} / HP ${gameState.enemy.hp}/${gameState.enemy.maxHp} / 상태 ${gameState.enemy.state.join(', ') || '없음'} / 위치 (${enemyPos.x}, ${enemyPos.y})`);
+    addLog(`[마법] 주변 위험 타일 수: ${countDangerTiles()}`);
+    if (markIncomingAttackFromEnemy()) addLog('[마법] 적의 다음 공격 예고 타일을 표시했습니다.');
+  }
+
+  if (spellName === '파이어') {
+    const targets = [enemyPos, { x: enemyPos.x + 1, y: enemyPos.y }, { x: enemyPos.x - 1, y: enemyPos.y }, { x: enemyPos.x, y: enemyPos.y + 1 }, { x: enemyPos.x, y: enemyPos.y - 1 }];
+    targets.forEach((pos) => {
+      if (pos.x >= 0 && pos.x < MAP_SIZE && pos.y >= 0 && pos.y < MAP_SIZE) {
+        gameState.map.tiles[pos.y][pos.x].fire = true;
+        gameState.map.tiles[pos.y][pos.x].magicEffect = 'fire';
+      }
+    });
+    gameState.enemy.hp = Math.max(0, gameState.enemy.hp - 3);
+    addLog('[결과] 적 주변에 불길이 번졌습니다. 적 HP -3');
+  }
+
+  if (spellName === '아이스') {
+    pushEnemyState('빙결');
+    addLog('[결과] 적이 빙결 상태가 되어 다음 이동을 할 수 없습니다.');
+  }
+
+  if (spellName === '윈드') {
+    const rawDx = gameState.enemy.position.x - gameState.player.position.x;
+    const rawDy = gameState.enemy.position.y - gameState.player.position.y;
+    const pushDx = Math.abs(rawDx) >= Math.abs(rawDy) ? Math.sign(rawDx) : 0;
+    const pushDy = Math.abs(rawDy) > Math.abs(rawDx) ? Math.sign(rawDy) : 0;
+    const pushTarget = { x: gameState.enemy.position.x + pushDx, y: gameState.enemy.position.y + pushDy };
+    if (pushTarget.x >= 0 && pushTarget.x < MAP_SIZE && pushTarget.y >= 0 && pushTarget.y < MAP_SIZE && !gameState.map.tiles[pushTarget.y][pushTarget.x].blocked) {
+      gameState.enemy.position = pushTarget;
+      addLog(`[결과] 적이 (${pushTarget.x}, ${pushTarget.y})로 밀려났습니다.`);
+    } else {
+      addLog('[결과] 적을 밀어낼 수 없었습니다.');
+    }
+    gameState.enemy.hp = Math.max(0, gameState.enemy.hp - 1);
+    addLog('[결과] 바람 피해. 적 HP -1');
+  }
+
+  if (spellName === '매직 애로우') {
+    const playerRoll = rollDice(gameState.player.stats.지능);
+    const enemyRoll = rollDice(gameState.enemy.stats.지혜);
+    addLog(`[판정] 플레이어 지능 ${gameState.player.stats.지능} → 1d${gameState.player.stats.지능} = ${playerRoll} / 적 지혜 ${gameState.enemy.stats.지혜} → 1d${gameState.enemy.stats.지혜} = ${enemyRoll}`);
+    if (playerRoll > enemyRoll) {
+      gameState.enemy.hp = Math.max(0, gameState.enemy.hp - 5);
+      addLog('[결과] 매직 애로우 성공. 적 HP -5');
+    } else {
+      addLog('[결과] 매직 애로우 실패. 피해 없음');
+    }
+  }
+
+  if (spellName === '그리스') {
+    const tile = gameState.map.tiles[enemyPos.y][enemyPos.x];
+    tile.magicEffect = 'grease';
+    pushEnemyState('미끄러짐');
+    addLog('[결과] 적 위치에 기름을 깔았습니다. 적은 다음 이동 전 미끄러짐 판정을 합니다.');
+  }
+
+  if (spellName === '디그') {
+    const betweenDx = Math.abs(gameState.player.position.x - enemyPos.x) >= Math.abs(gameState.player.position.y - enemyPos.y) ? Math.sign(gameState.player.position.x - enemyPos.x) : 0;
+    const betweenDy = Math.abs(gameState.player.position.y - enemyPos.y) > Math.abs(gameState.player.position.x - enemyPos.x) ? Math.sign(gameState.player.position.y - enemyPos.y) : 0;
+    const candidates = [
+      { x: enemyPos.x + betweenDx, y: enemyPos.y + betweenDy },
+      { x: enemyPos.x + 1, y: enemyPos.y },
+      { x: enemyPos.x - 1, y: enemyPos.y },
+      { x: enemyPos.x, y: enemyPos.y + 1 },
+      { x: enemyPos.x, y: enemyPos.y - 1 },
+    ];
+    const target = candidates.find((pos) => pos.x >= 0 && pos.x < MAP_SIZE && pos.y >= 0 && pos.y < MAP_SIZE && !(pos.x === enemyPos.x && pos.y === enemyPos.y) && !(pos.x === gameState.player.position.x && pos.y === gameState.player.position.y));
+    if (target) {
+      const tile = gameState.map.tiles[target.y][target.x];
+      tile.terrain = 'broken';
+      tile.durability = 0;
+      tile.blocked = true;
+      addLog(`[결과] (${target.x}, ${target.y}) 지형을 파괴했습니다.`);
+    } else {
+      addLog('[결과] 파괴할 수 있는 지형이 없습니다.');
+    }
+  }
+
+  if (spellName === '다크니스') {
+    pushEnemyState('암흑');
+    addLog('[결과] 적이 암흑 상태가 되어 다음 공격 명중 능력이 약화됩니다.');
+  }
+
+  resolveBattleActionAfterPlayerEffect();
 }
 
 function selectReward(index) {
@@ -983,6 +1250,7 @@ function finishShopPhase() {
 
 function enterNextFloor() {
   ensureStateShape();
+  hideBattleOptionPanel();
   if (gameState.phase !== 'NEXT_FLOOR_CONFIRM') return;
 
   gameState.floor += 1;
@@ -1093,6 +1361,7 @@ function handleAction(action) {
   if (action === 'move-down') movePlayer(0, 1);
   if (action === 'move-left') movePlayer(-1, 0);
   if (action === 'move-right') movePlayer(1, 0);
+  if (action === 'skill') renderBattleOptionPanel('skill');
   if (action === 'magic') handleMagic();
   if (action === 'observe') handleObserve();
 }
@@ -1103,6 +1372,7 @@ function saveGame() {
 }
 
 function loadGame() {
+  hideBattleOptionPanel();
   const saved = localStorage.getItem(SAVE_KEY);
   if (!saved) {
     addLog('불러오기 실패: 저장된 데이터가 없습니다.');
@@ -1127,6 +1397,7 @@ function loadGame() {
 }
 
 function resetGame() {
+  hideBattleOptionPanel();
   gameState = createInitialGameState();
   localStorage.removeItem(SAVE_KEY);
   logElement.innerHTML = '';
@@ -1159,6 +1430,7 @@ function bindActions() {
   finishMagicBookButton.addEventListener('click', finishMagicBookPhase);
   finishShopButton.addEventListener('click', finishShopPhase);
   enterNextFloorButton.addEventListener('click', enterNextFloor);
+  closeBattleOptionButton.addEventListener('click', hideBattleOptionPanel);
 }
 
 function init() {
