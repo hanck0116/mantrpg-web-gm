@@ -1,11 +1,32 @@
-import type { AiNarrationRequest, AiNarrationResponse, AiProviderStatus } from './types';
+import type { AiPayload, AiProvider, AiProviderStatus, AiResponse, AiTask } from './types';
+
+const fallbackResponse: AiResponse = {
+  narration: 'AI 응답 없이 로컬 규칙 결과만 반영합니다.',
+  combat_log: ['fallback:local-only'],
+  ui_tags: ['fallback'],
+};
 
 export function getAiProviderStatus(): AiProviderStatus {
   return 'disabled';
 }
 
-export async function requestOptionalNarration(_request: AiNarrationRequest): Promise<AiNarrationResponse> {
-  return {
-    narration: 'AI 서술 기능은 선택 기능이며 이번 단계에서는 호출하지 않습니다.',
-  };
+export function routeProviders(task: AiTask, priority: readonly AiProvider[] = []): readonly AiProvider[] {
+  if (priority.length > 0) {
+    const providers: AiProvider[] = [...priority, 'openrouter'];
+    return providers.filter((provider, index, allProviders) => allProviders.indexOf(provider) === index);
+  }
+
+  if (task === 'interpret' || task === 'narrate') {
+    return ['groq', 'openrouter'];
+  }
+
+  if (task === 'summarize' || task === 'generate-skill') {
+    return ['gemini', 'openrouter'];
+  }
+
+  return ['openrouter'];
+}
+
+export async function callLLM(_task: AiTask, _payload: AiPayload): Promise<AiResponse> {
+  return fallbackResponse;
 }

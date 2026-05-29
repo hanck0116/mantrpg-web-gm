@@ -1,11 +1,12 @@
 import { CORE_RULES } from '../rules/coreRules';
-import type { GameState, Position } from '../state/types';
+import type { GameState, Position } from '../state/gameState';
 
 export type MapCell = {
   readonly x: number;
   readonly y: number;
   readonly occupant: 'player' | 'enemy' | null;
   readonly terrain: 'plain';
+  readonly effect: 'none' | 'attack-preview' | 'fire' | 'mark' | 'magic';
 };
 
 function samePosition(a: Position, b: Position): boolean {
@@ -28,6 +29,7 @@ export function createFixedMap(state: GameState): MapCell[] {
       y,
       occupant,
       terrain: 'plain',
+      effect: 'none',
     };
   });
 }
