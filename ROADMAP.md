@@ -46,6 +46,14 @@
 - offline support 추가 완료
 - mobile install support 추가 완료
 
+## Phase 7: Save Stability and Release Check
+
+- 저장 삭제
+- 저장 내보내기
+- 저장 가져오기
+- 앱 버전 표시
+- 배포 전 테스트 체크리스트
+
 ## 다음 개선 예정
 
 - 전투 밸런스 조정
