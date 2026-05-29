@@ -105,6 +105,8 @@ function createInitialGameState() {
 
 let gameState = createInitialGameState();
 let isStatusDetailOpen = false;
+let isTestModeOpen = false;
+let isTestModeEnabled = false;
 
 const mapElement = document.getElementById('tactical-map');
 const logElement = document.getElementById('combat-log');
@@ -151,6 +153,14 @@ const closeBattleOptionButton = document.getElementById('close-battle-option-but
 const toggleStatusDetailButton = document.getElementById('toggle-status-detail-button');
 const statusDetailElement = document.getElementById('status-detail');
 const phaseGuideElement = document.getElementById('phase-guide');
+const toggleTestModeButton = document.getElementById('toggle-test-mode-button');
+const testPanel = document.getElementById('test-panel');
+const testGiveCoinButton = document.getElementById('test-give-coin-button');
+const testGiveBooksButton = document.getElementById('test-give-books-button');
+const testGiveSkillsButton = document.getElementById('test-give-skills-button');
+const testGiveSpellsButton = document.getElementById('test-give-spells-button');
+const testEnemyLowHpButton = document.getElementById('test-enemy-low-hp-button');
+const testClearFloorButton = document.getElementById('test-clear-floor-button');
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -269,6 +279,20 @@ function toggleStatusDetail() {
   statusDetailElement.hidden = !isStatusDetailOpen;
   toggleStatusDetailButton.textContent = isStatusDetailOpen ? '상세 정보 접기' : '상세 정보 보기';
   toggleStatusDetailButton.setAttribute('aria-expanded', String(isStatusDetailOpen));
+}
+
+function toggleTestMode() {
+  isTestModeOpen = !isTestModeOpen;
+  testPanel.hidden = !isTestModeOpen;
+  isTestModeEnabled = isTestModeOpen;
+  toggleTestModeButton.textContent = isTestModeOpen ? '테스트 모드 닫기' : '테스트 모드';
+  addLog(isTestModeOpen ? '테스트 모드를 열었습니다. 배포 전 점검용입니다.' : '테스트 모드를 닫았습니다.');
+}
+
+function canUseTestMode() {
+  if (isTestModeEnabled) return true;
+  addLog('테스트 모드가 꺼져 있습니다.');
+  return false;
 }
 
 function updatePhaseGuide() {
@@ -564,6 +588,67 @@ function renderAll() {
   renderMagicBookPanel();
   renderShopPanel();
   renderNextFloorPanel();
+}
+
+function testGiveCoin() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  gameState.player.coin += 10;
+  addLog('[테스트] 코인 +10');
+  renderAll();
+}
+
+function testGiveBooks() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  gameState.player.inventory.magicBook += 3;
+  addLog('[테스트] 마법서 +3');
+  renderAll();
+}
+
+function testGiveSkills() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  SKILL_TEMPLATES.forEach((skillTemplate) => {
+    const hasSkill = gameState.player.skills.some((skill) => skill.type === skillTemplate.type);
+    if (!hasSkill) gameState.player.skills.push({ ...skillTemplate });
+  });
+  addLog('[테스트] 테스트 스킬을 지급했습니다.');
+  renderAll();
+}
+
+function testGiveSpells() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  MAGIC_POOL_1.forEach((spellName) => {
+    if (!gameState.player.spells.includes(spellName)) gameState.player.spells.push(spellName);
+  });
+  addLog('[테스트] 모든 1서클 마법을 지급했습니다.');
+  renderAll();
+}
+
+function testEnemyLowHp() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  if (gameState.phase !== 'BATTLE') {
+    addLog('전투 중에만 사용할 수 있습니다.');
+    return;
+  }
+  gameState.enemy.hp = 1;
+  addLog('[테스트] 적 HP를 1로 변경했습니다.');
+  renderAll();
+}
+
+function testClearFloor() {
+  if (!canUseTestMode()) return;
+  ensureStateShape();
+  if (gameState.phase !== 'BATTLE') {
+    addLog('전투 중에만 사용할 수 있습니다.');
+    return;
+  }
+  gameState.enemy.hp = 0;
+  clearFloor();
+  addLog('[테스트] 현재 층 클리어를 실행했습니다.');
 }
 
 function pickRandomSkillOptions(count) {
@@ -1519,6 +1604,10 @@ function importSaveFromFile(event) {
 
 function resetGame() {
   hideBattleOptionPanel();
+  isTestModeOpen = false;
+  isTestModeEnabled = false;
+  testPanel.hidden = true;
+  toggleTestModeButton.textContent = '테스트 모드';
   gameState = createInitialGameState();
   localStorage.removeItem(SAVE_KEY);
   logElement.innerHTML = '';
@@ -1550,6 +1639,13 @@ function bindActions() {
   enterNextFloorButton.addEventListener('click', enterNextFloor);
   closeBattleOptionButton.addEventListener('click', hideBattleOptionPanel);
   toggleStatusDetailButton.addEventListener('click', toggleStatusDetail);
+  toggleTestModeButton.addEventListener('click', toggleTestMode);
+  testGiveCoinButton.addEventListener('click', testGiveCoin);
+  testGiveBooksButton.addEventListener('click', testGiveBooks);
+  testGiveSkillsButton.addEventListener('click', testGiveSkills);
+  testGiveSpellsButton.addEventListener('click', testGiveSpells);
+  testEnemyLowHpButton.addEventListener('click', testEnemyLowHp);
+  testClearFloorButton.addEventListener('click', testClearFloor);
 }
 
 function init() {
