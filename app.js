@@ -116,6 +116,9 @@ const exportSaveButton = document.getElementById('export-save-button');
 const importSaveButton = document.getElementById('import-save-button');
 const importSaveInput = document.getElementById('import-save-input');
 const appVersionElement = document.getElementById('app-version');
+const toggleStatusDetailButton = document.getElementById('toggle-status-detail-button');
+const statusDetailElement = document.getElementById('status-detail');
+const phaseGuideElement = document.getElementById('phase-guide');
 const rewardPanel = document.getElementById('reward-panel');
 const rewardOptionsElement = document.getElementById('reward-options');
 const rerollRewardButton = document.getElementById('reroll-reward-button');
@@ -147,6 +150,8 @@ const battleOptionPanel = document.getElementById('battle-option-panel');
 const battleOptionTitleElement = document.getElementById('battle-option-title');
 const battleOptionListElement = document.getElementById('battle-option-list');
 const closeBattleOptionButton = document.getElementById('close-battle-option-button');
+
+let isStatusDetailOpen = false;
 
 function addLog(message) {
   const li = document.createElement('li');
@@ -259,6 +264,28 @@ function ensureStateShape() {
   gameState.saveVersion = SAVE_VERSION;
 }
 
+function toggleStatusDetail() {
+  isStatusDetailOpen = !isStatusDetailOpen;
+  statusDetailElement.hidden = !isStatusDetailOpen;
+  toggleStatusDetailButton.textContent = isStatusDetailOpen ? '상세 정보 접기' : '상세 정보 보기';
+}
+
+function updatePhaseGuide() {
+  const guideByPhase = {
+    INITIAL_STAT: '초기 스탯을 모두 분배하세요.',
+    BATTLE: '전투 중입니다. 행동을 선택하세요.',
+    REWARD_SELECT: '보상 후보 2개 중 하나를 선택하세요.',
+    IMAGINATION_STAT: '스탯 포인트를 분배하세요.',
+    IMAGINATION_SKILL: '스킬 후보를 선택하거나 조건 미달 시 자동 생략됩니다.',
+    IMAGINATION_MAGIC_BOOK: '마법서 습득을 시도하거나 완료하세요.',
+    IMAGINATION_SHOP: '상점을 이용한 뒤 완료하세요.',
+    NEXT_FLOOR_CONFIRM: '다음 층으로 진입할 수 있습니다.',
+    GAME_OVER: '게임 오버입니다. 새 게임을 시작할 수 있습니다.',
+  };
+
+  phaseGuideElement.textContent = guideByPhase[gameState.phase] || '현재 단계를 확인하세요.';
+}
+
 function renderStatus() {
   ensureStateShape();
   if (gameState.phase !== 'BATTLE') hideBattleOptionPanel();
@@ -280,6 +307,7 @@ function renderStatus() {
   document.getElementById('player-skill-count').textContent = String(gameState.player.skills.length);
   document.getElementById('player-spell-count').textContent = String(gameState.player.spells.length);
   appVersionElement.textContent = APP_VERSION;
+  updatePhaseGuide();
 }
 
 
@@ -1520,7 +1548,9 @@ function bindActions() {
   finishShopButton.addEventListener('click', finishShopPhase);
   enterNextFloorButton.addEventListener('click', enterNextFloor);
   closeBattleOptionButton.addEventListener('click', hideBattleOptionPanel);
+  toggleStatusDetailButton.addEventListener('click', toggleStatusDetail);
 }
+
 
 function init() {
   bindActions();
@@ -1530,6 +1560,7 @@ function init() {
     addLog('저장된 게임이 있습니다. 이어서 하려면 불러오기를 누르세요.');
     addLog('새로 시작하려면 새 게임을 누르세요.');
     renderAll();
+    if (phaseGuideElement) phaseGuideElement.textContent = '저장된 게임이 있습니다. 이어서 하려면 불러오기를 누르세요.';
     return;
   }
 
