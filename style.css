@@ -82,7 +82,7 @@ body {
 
 #toggle-status-detail-button {
   width: 100%;
-  min-height: 2.15rem;
+  min-height: 2.2rem;
   border-color: color-mix(in srgb, var(--accent) 55%, #4b5563);
   background: #102018;
 }
@@ -98,7 +98,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
-  padding: 0.55rem;
+  padding: 0.6rem;
   font-size: 0.82rem;
 }
 
@@ -125,11 +125,11 @@ body {
 }
 
 .phase-guide {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.5rem;
   padding: 0.45rem;
-  background: var(--panel-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
-  border-radius: 0.55rem;
+  background: #0f172a;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
   font-size: 0.85rem;
   line-height: 1.35;
 }
@@ -157,11 +157,18 @@ body {
 }
 
 .manage-panel {
-  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .action-panel {
-  grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 420px) {
+  .manage-panel,
+  .action-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .reward-panel,

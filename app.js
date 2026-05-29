@@ -268,6 +268,7 @@ function toggleStatusDetail() {
   isStatusDetailOpen = !isStatusDetailOpen;
   statusDetailElement.hidden = !isStatusDetailOpen;
   toggleStatusDetailButton.textContent = isStatusDetailOpen ? '상세 정보 접기' : '상세 정보 보기';
+  toggleStatusDetailButton.setAttribute('aria-expanded', String(isStatusDetailOpen));
 }
 
 function updatePhaseGuide() {
@@ -282,6 +283,7 @@ function updatePhaseGuide() {
     NEXT_FLOOR_CONFIRM: '다음 층으로 진입할 수 있습니다.',
     GAME_OVER: '게임 오버입니다. 새 게임을 시작할 수 있습니다.',
   };
+  if (!phaseGuideElement) return;
   phaseGuideElement.textContent = guideMessages[gameState.phase] || '현재 단계를 확인하세요.';
 }
 
