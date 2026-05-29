@@ -1,3 +1,4 @@
+const APP_VERSION = "0.1.0";
 const MAP_SIZE = 7;
 const SAVE_KEY = 'mantrpg-web-gm-save';
 
@@ -108,6 +109,11 @@ const actionButtons = document.querySelectorAll('[data-action]');
 const newGameButton = document.getElementById('new-game-button');
 const saveButton = document.getElementById('save-game-button');
 const loadButton = document.getElementById('load-game-button');
+const deleteSaveButton = document.getElementById('delete-save-button');
+const exportSaveButton = document.getElementById('export-save-button');
+const importSaveButton = document.getElementById('import-save-button');
+const importSaveInput = document.getElementById('import-save-input');
+const appVersionElement = document.getElementById('app-version');
 const rewardPanel = document.getElementById('reward-panel');
 const rewardOptionsElement = document.getElementById('reward-options');
 const rerollRewardButton = document.getElementById('reroll-reward-button');
@@ -208,12 +214,18 @@ function createInitialPlayer() {
   };
 }
 
+function hasValidMapTiles(tiles) {
+  return Array.isArray(tiles)
+    && tiles.length === MAP_SIZE
+    && tiles.every((row) => Array.isArray(row) && row.length === MAP_SIZE);
+}
+
 function ensureStateShape() {
   if (!gameState.player) gameState.player = createInitialPlayer();
   if (!gameState.enemy) gameState.enemy = createEnemyForFloor(gameState.floor || 1);
   if (!Array.isArray(gameState.player.state)) gameState.player.state = [];
   if (!Array.isArray(gameState.enemy.state)) gameState.enemy.state = [];
-  if (!gameState.map || gameState.map.size !== MAP_SIZE || !Array.isArray(gameState.map.tiles)) gameState.map = createInitialMap();
+  if (!gameState.map || gameState.map.size !== MAP_SIZE || !hasValidMapTiles(gameState.map.tiles)) gameState.map = createInitialMap();
   for (let y = 0; y < gameState.map.size; y += 1) {
     for (let x = 0; x < gameState.map.size; x += 1) {
       gameState.map.tiles[y][x] = { ...createBaseTile(x, y), ...gameState.map.tiles[y][x] };
@@ -263,7 +275,9 @@ function renderStatus() {
   document.getElementById('player-stat-points').textContent = String(gameState.player.statPoints);
   document.getElementById('player-skill-count').textContent = String(gameState.player.skills.length);
   document.getElementById('player-spell-count').textContent = String(gameState.player.spells.length);
+  appVersionElement.textContent = APP_VERSION;
 }
+
 
 function getTileLabel(tile, x, y) {
   if (gameState.player.position.x === x && gameState.player.position.y === y) return '나';
@@ -506,6 +520,17 @@ function renderSkillPanel() {
     if (gameState.skill.selected) button.disabled = true;
     skillOptionsElement.appendChild(button);
   });
+}
+
+function renderAll() {
+  renderStatus();
+  renderMap();
+  renderRewardOptions();
+  renderStatPanel();
+  renderSkillPanel();
+  renderMagicBookPanel();
+  renderShopPanel();
+  renderNextFloorPanel();
 }
 
 function pickRandomSkillOptions(count) {
@@ -1382,18 +1407,73 @@ function loadGame() {
   try {
     gameState = JSON.parse(saved);
     ensureStateShape();
-    renderStatus();
-    renderMap();
-    renderRewardOptions();
-    renderStatPanel();
-    renderSkillPanel();
-    renderMagicBookPanel();
-    renderShopPanel();
-    renderNextFloorPanel();
+    renderAll();
     addLog('불러오기 완료: 저장된 상태를 적용했습니다.');
   } catch (error) {
     addLog('불러오기 실패: 저장 데이터가 손상되었습니다.');
   }
+}
+
+function deleteSave() {
+  localStorage.removeItem(SAVE_KEY);
+  addLog('저장 데이터를 삭제했습니다. 새로 시작하려면 새 게임을 누르세요.');
+}
+
+function exportSave() {
+  ensureStateShape();
+  const saveData = JSON.stringify(gameState, null, 2);
+  const blob = new Blob([saveData], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'mantrpg-save.json';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  addLog('저장 데이터를 파일로 내보냈습니다.');
+}
+
+function isValidImportedSave(imported) {
+  return Boolean(
+    imported
+      && typeof imported === 'object'
+      && imported.player
+      && typeof imported.phase === 'string'
+      && imported.map
+  );
+}
+
+function importSaveFromFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!isValidImportedSave(imported)) {
+        addLog('가져오기 실패: 저장 데이터 형식이 맞지 않습니다.');
+        return;
+      }
+
+      hideBattleOptionPanel();
+      gameState = imported;
+      ensureStateShape();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+      renderAll();
+      addLog('저장 데이터를 가져왔습니다.');
+    } catch (error) {
+      addLog('가져오기 실패: 저장 파일이 올바르지 않습니다.');
+    } finally {
+      importSaveInput.value = '';
+    }
+  };
+  reader.onerror = () => {
+    addLog('가져오기 실패: 저장 파일이 올바르지 않습니다.');
+    importSaveInput.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function resetGame() {
@@ -1404,14 +1484,7 @@ function resetGame() {
   addLog('새 게임을 시작합니다.');
   addLog('초기 스탯 총합 54가 되도록 스탯 포인트 48을 모두 분배하세요.');
   addLog('분배 완료 후 1층 전투가 시작됩니다.');
-  renderStatus();
-  renderMap();
-  renderRewardOptions();
-  renderStatPanel();
-  renderSkillPanel();
-  renderMagicBookPanel();
-  renderShopPanel();
-  renderNextFloorPanel();
+  renderAll();
 }
 
 
@@ -1422,6 +1495,10 @@ function bindActions() {
   newGameButton.addEventListener('click', resetGame);
   saveButton.addEventListener('click', saveGame);
   loadButton.addEventListener('click', loadGame);
+  deleteSaveButton.addEventListener('click', deleteSave);
+  exportSaveButton.addEventListener('click', exportSave);
+  importSaveButton.addEventListener('click', () => importSaveInput.click());
+  importSaveInput.addEventListener('change', importSaveFromFile);
   rerollRewardButton.addEventListener('click', rerollRewards);
   finishStatButton.addEventListener('click', finishStatDistribution);
   recommendedStatButton.addEventListener('click', applyRecommendedStats);

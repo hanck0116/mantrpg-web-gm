@@ -25,6 +25,7 @@
           <p>스탯 포인트 <strong id="player-stat-points">48</strong></p>
           <p>보유 스킬 <strong id="player-skill-count">0</strong></p>
           <p>보유 마법 <strong id="player-spell-count">0</strong></p>
+          <p class="app-version">버전 <strong id="app-version">0.1.0</strong></p>
         </div>
         <div class="status-card">
           <h2>적 (1명)</h2>
@@ -43,6 +44,10 @@
         <button type="button" id="new-game-button">새 게임</button>
         <button type="button" id="save-game-button">저장</button>
         <button type="button" id="load-game-button">불러오기</button>
+        <button type="button" id="delete-save-button">저장 삭제</button>
+        <button type="button" id="export-save-button">저장 내보내기</button>
+        <input type="file" id="import-save-input" accept="application/json" hidden />
+        <button type="button" id="import-save-button">저장 가져오기</button>
       </section>
 
       <section class="action-panel" aria-label="하단 행동 버튼">
