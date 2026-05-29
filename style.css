@@ -45,7 +45,8 @@ body {
 .battle-option-panel,
 .magic-book-panel,
 .shop-panel,
-.next-floor-panel {
+.next-floor-panel,
+.test-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.75rem;
@@ -115,7 +116,8 @@ body {
 .battle-option-panel h2,
 .magic-book-panel h2,
 .shop-panel h2,
-.next-floor-panel h2 {
+.next-floor-panel h2,
+.test-panel h2 {
   font-size: 0.95rem;
   margin: 0 0 0.4rem;
 }
@@ -177,7 +179,8 @@ body {
 .battle-option-panel,
 .magic-book-panel,
 .shop-panel,
-.next-floor-panel {
+.next-floor-panel,
+.test-panel {
   display: grid;
   gap: 0.45rem;
 }
@@ -189,6 +192,7 @@ body {
 .magic-book-panel p,
 .shop-panel p,
 .next-floor-panel p,
+.test-panel p,
 .shop-panel h3 {
   margin: 0;
 }
@@ -198,6 +202,36 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0.4rem;
 }
+
+.test-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.test-panel h2,
+.test-panel .test-warning {
+  grid-column: 1 / -1;
+}
+
+.test-warning {
+  padding: 0.5rem;
+  background: #2a1f0f;
+  border: 1px solid #92400e;
+  border-radius: 0.55rem;
+  color: #fde68a;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.test-panel button {
+  min-height: 2.7rem;
+}
+
+@media (max-width: 360px) {
+  .test-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .reward-button {
   min-height: 2.4rem;

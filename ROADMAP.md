@@ -66,6 +66,14 @@
 - 모바일 버튼 배치 정리
 - service worker v4 캐시 갱신
 
+## Phase 9: Test Mode and Release Check
+
+- 테스트 모드 기본 OFF
+- 코인/마법서/스킬/마법 지급
+- 적 HP 1로 만들기
+- 현재 층 클리어 테스트
+- 배포 전 점검 보조
+
 ## 다음 개선 예정
 
 - 전투 밸런스 조정

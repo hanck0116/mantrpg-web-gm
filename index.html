@@ -50,6 +50,7 @@
         <button type="button" id="export-save-button">저장 내보내기</button>
         <input type="file" id="import-save-input" accept="application/json" hidden />
         <button type="button" id="import-save-button">저장 가져오기</button>
+        <button type="button" id="toggle-test-mode-button">테스트 모드</button>
       </section>
 
       <section class="action-panel" aria-label="하단 행동 버튼">
@@ -119,6 +120,17 @@
         <h2 id="battle-option-title">전투 선택</h2>
         <div id="battle-option-list"></div>
         <button type="button" id="close-battle-option-button">닫기</button>
+      </section>
+
+      <section class="test-panel" id="test-panel" hidden>
+        <h2>테스트 모드</h2>
+        <p class="test-warning">테스트 모드는 배포 전 기능 점검용입니다. 일반 플레이에서는 사용하지 마세요.</p>
+        <button type="button" id="test-give-coin-button">코인 +10</button>
+        <button type="button" id="test-give-books-button">마법서 +3</button>
+        <button type="button" id="test-give-skills-button">테스트 스킬 지급</button>
+        <button type="button" id="test-give-spells-button">마법 전체 지급</button>
+        <button type="button" id="test-enemy-low-hp-button">적 HP 1로 만들기</button>
+        <button type="button" id="test-clear-floor-button">현재 층 클리어</button>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">
