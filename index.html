@@ -50,6 +50,7 @@
         <button type="button" data-action="move-down">↓</button>
         <button type="button" data-action="move-left">←</button>
         <button type="button" data-action="move-right">→</button>
+        <button type="button" data-action="skill">스킬</button>
         <button type="button" data-action="magic">마법</button>
         <button type="button" data-action="observe">관찰</button>
       </section>
@@ -102,6 +103,12 @@
         <h2>다음 층 진입</h2>
         <p id="next-floor-desc">준비가 끝났다면 다음 층으로 이동하세요.</p>
         <button type="button" id="enter-next-floor-button">다음 층 진입</button>
+      </section>
+
+      <section class="battle-option-panel" id="battle-option-panel" hidden>
+        <h2 id="battle-option-title">전투 선택</h2>
+        <div id="battle-option-list"></div>
+        <button type="button" id="close-battle-option-button">닫기</button>
       </section>
 
       <section class="map-panel" aria-label="하단 2D 전술 맵">
