@@ -44,6 +44,7 @@ ManTRPG Web GM은 ManRPG v18 FINAL 규칙을 기반으로 한 모바일 우선 P
 
 - 테스트 모드는 배포 전 기능 점검용이다.
 - 기본값은 OFF다.
+- 실제 배포 시 app.js의 ENABLE_TEST_MODE는 false로 유지한다.
 - 테스트 모드에서는 코인, 마법서, 스킬, 마법을 임시 지급할 수 있다.
 - 테스트 모드에서는 적 HP를 1로 만들거나 현재 층 클리어를 강제로 실행할 수 있다.
 - 일반 플레이 밸런스 확인 시에는 테스트 모드를 사용하지 않는다.
@@ -66,6 +67,12 @@ iPhone Safari:
 Cloudflare Pages 또는 GitHub Pages에 정적 파일로 배포할 수 있다.
 서버, 외부 DB, 유료 API가 필요 없다.
 자세한 배포 절차는 DEPLOY.md를 참고한다.
+
+## 추가 문서
+
+- 배포 절차: DEPLOY.md
+- 최종 점검표: FINAL_CHECKLIST.md
+- 릴리즈 노트: RELEASE_NOTES.md
 
 ## 주의
 
