@@ -1,13 +1,10 @@
 export type WorkerAiRequest = {
-  readonly type: 'narrate';
-  readonly payload: {
-    readonly prompt: string;
-  };
+  readonly task: 'interpret' | 'narrate' | 'summarize' | 'generate-skill';
+  readonly payload: Record<string, unknown>;
 };
 
 export type WorkerAiResponse = {
-  readonly type: 'narration-disabled';
-  readonly payload: {
-    readonly message: string;
-  };
+  readonly narration: string;
+  readonly combat_log: readonly string[];
+  readonly ui_tags: readonly string[];
 };

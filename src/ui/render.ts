@@ -1,18 +1,47 @@
+import { applyPlayerAction } from '../game/turn';
 import { createFixedMap } from '../map/fixedMap';
+import { createMinimapSummary } from '../map/minimap';
 import { CORE_RULES } from '../rules/coreRules';
-import type { GameState } from '../state/types';
+import { loadGameStub, saveGameStub } from '../storage/save';
+import type { ActionType, Combatant, GameState } from '../state/gameState';
+import { renderAiSettingsPanel } from './aiSettings';
 
-function renderStatus(state: GameState): string {
+const actionLabels: ReadonlyArray<{ action: ActionType; label: string }> = [
+  { action: 'move', label: '이동' },
+  { action: 'basic-attack', label: '기본 공격' },
+  { action: 'skill', label: '스킬' },
+  { action: 'magic', label: '마법' },
+  { action: 'item', label: '아이템' },
+  { action: 'defend', label: '방어' },
+  { action: 'wait', label: '대기' },
+  { action: 'end-turn', label: '턴 마무리' },
+];
+
+function renderCombatantStatus(title: string, combatant: Combatant): string {
   return `
-    <section class="panel status-panel" aria-labelledby="status-title">
-      <h2 id="status-title">기본 상태</h2>
+    <section class="panel status-panel" aria-labelledby="${combatant.id}-status-title">
+      <h2 id="${combatant.id}-status-title">${title}</h2>
+      <div class="status-grid">
+        <span>이름</span><strong>${combatant.name}</strong>
+        <span>레벨</span><strong>${combatant.level}</strong>
+        <span>HP</span><strong>${combatant.hp}/${combatant.maxHP}</strong>
+        <span>MP</span><strong>${combatant.mp}/${combatant.maxMP}</strong>
+        <span>기본 공격</span><strong>${combatant.derivedStats.basicAtk}</strong>
+        <span>MP 재생</span><strong>${combatant.derivedStats.mpRegen}</strong>
+      </div>
+    </section>
+  `;
+}
+
+function renderRoundStatus(state: GameState): string {
+  return `
+    <section class="panel status-panel" aria-labelledby="round-status-title">
+      <h2 id="round-status-title">진행 상태</h2>
       <div class="status-grid">
         <span>층</span><strong>${state.floor}</strong>
         <span>턴</span><strong>${state.turn}</strong>
         <span>단계</span><strong>${state.phase}</strong>
         <span>코인</span><strong>${state.coins}</strong>
-        <span>HP</span><strong>${state.player.hp}/${state.player.maxHp}</strong>
-        <span>MP</span><strong>${state.player.mp}/${state.player.maxMp}</strong>
       </div>
     </section>
   `;
@@ -33,7 +62,29 @@ function renderMap(state: GameState): string {
       <div class="map-grid" role="grid" aria-rowcount="${CORE_RULES.mapSize}" aria-colcount="${CORE_RULES.mapSize}">
         ${cells}
       </div>
-      <p class="helper-text">P = 플레이어, E = 적. 적은 항상 1명만 표시합니다.</p>
+      <p class="helper-text">P = 플레이어, E = 적 1명. 맵은 항상 동일한 CSS Grid입니다.</p>
+    </section>
+  `;
+}
+
+function renderMinimapSummary(state: GameState): string {
+  return `
+    <section class="panel minimap-panel" aria-labelledby="minimap-title">
+      <h2 id="minimap-title">미니맵 요약</h2>
+      <ul class="summary-list">
+        ${createMinimapSummary(state).map((line) => `<li>${line}</li>`).join('')}
+      </ul>
+    </section>
+  `;
+}
+
+function renderActions(): string {
+  return `
+    <section class="panel actions-panel" aria-labelledby="actions-title">
+      <h2 id="actions-title">행동 버튼</h2>
+      <div class="action-grid">
+        ${actionLabels.map(({ action, label }) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
+      </div>
     </section>
   `;
 }
@@ -49,28 +100,59 @@ function renderLog(state: GameState): string {
   `;
 }
 
-function renderAiPanel(): string {
+function renderStorageControls(): string {
   return `
-    <section class="panel ai-panel" aria-labelledby="ai-title">
-      <h2 id="ai-title">AI 설정</h2>
-      <p>선택형 AI 서술자 영역입니다. API 키 없이도 게임은 로컬 규칙으로 진행됩니다.</p>
-      <button type="button" disabled>다음 단계에서 설정</button>
+    <section class="panel storage-panel" aria-labelledby="storage-title">
+      <h2 id="storage-title">저장 / 불러오기</h2>
+      <div class="action-grid two">
+        <button type="button" data-save="true">저장 stub</button>
+        <button type="button" data-load="true">불러오기 stub</button>
+      </div>
     </section>
   `;
 }
 
 export function renderApp(root: HTMLElement, state: GameState): void {
-  root.innerHTML = `
-    <main class="app-shell">
-      <header class="hero">
-        <p class="eyebrow">Mobile-first PWA skeleton</p>
-        <h1>ManRPG PWA AI</h1>
-        <p>ManRPG v18 FINAL 원본 패키지를 기준으로 구현하는 턴제 텍스트 TRPG 프로젝트 기반입니다.</p>
-      </header>
-      ${renderStatus(state)}
-      ${renderLog(state)}
-      ${renderAiPanel()}
-      ${renderMap(state)}
-    </main>
-  `;
+  let currentState = state;
+
+  function paint(nextState: GameState): void {
+    currentState = nextState;
+    root.innerHTML = `
+      <main class="app-shell">
+        <header class="hero">
+          <p class="eyebrow">Mobile-first PWA skeleton</p>
+          <h1>ManRPG PWA AI</h1>
+          <p>실행 가능한 PWA 기본 골격, 로컬 규칙 엔진 시작, 7x7 고정 맵 화면입니다.</p>
+        </header>
+        ${renderRoundStatus(currentState)}
+        ${renderCombatantStatus('플레이어 상태창', currentState.player)}
+        ${renderCombatantStatus('적 상태창', currentState.enemy)}
+        ${renderActions()}
+        ${renderLog(currentState)}
+        ${renderAiSettingsPanel()}
+        ${renderMinimapSummary(currentState)}
+        ${renderStorageControls()}
+        ${renderMap(currentState)}
+      </main>
+    `;
+
+    root.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.dataset.action as ActionType;
+        paint(applyPlayerAction(currentState, action));
+      });
+    });
+
+    root.querySelector<HTMLButtonElement>('[data-save]')?.addEventListener('click', () => {
+      saveGameStub(currentState);
+      paint({ ...currentState, log: [...currentState.log, '현재 상태를 localStorage에 저장했습니다.'].slice(-12) });
+    });
+
+    root.querySelector<HTMLButtonElement>('[data-load]')?.addEventListener('click', () => {
+      const loaded = loadGameStub();
+      paint(loaded ?? { ...currentState, log: [...currentState.log, '저장된 상태가 없습니다.'].slice(-12) });
+    });
+  }
+
+  paint(currentState);
 }

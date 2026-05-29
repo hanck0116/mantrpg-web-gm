@@ -1,19 +1,19 @@
-import type { PlayerStats } from '../state/types';
+import type { PrimaryStats } from '../state/gameState';
+import { calcDerivedStatsFromPrimary } from './derivedStats';
 
 export const MAP_SIZE = 7;
 
 export const CORE_RULES = {
-  sourcePackage: 'ManRPG_v18_FINAL_병합패키지.zip',
-  enemyCount: 1,
-  bossMonstersAllowed: false,
   mapSize: MAP_SIZE,
-  mapIsFixed: true,
+  enemyCount: 1,
+  fixedMap: true,
+  localRulesOnly: true,
   aiCanJudgeRules: false,
   aiCanRollDice: false,
   aiCanGenerateRewards: false,
 } as const;
 
-export const INITIAL_STATS: PlayerStats = {
+export const INITIAL_STATS: PrimaryStats = {
   strength: 9,
   agility: 9,
   stamina: 9,
@@ -22,10 +22,10 @@ export const INITIAL_STATS: PlayerStats = {
   appearance: 9,
 };
 
-export function maxHp(stats: PlayerStats): number {
-  return 20 + stats.stamina;
+export function maxHp(stats: PrimaryStats): number {
+  return calcDerivedStatsFromPrimary(1, stats).maxHP;
 }
 
-export function maxMp(stats: PlayerStats): number {
-  return 4 + stats.intelligence;
+export function maxMp(stats: PrimaryStats): number {
+  return calcDerivedStatsFromPrimary(1, stats).maxMP;
 }
